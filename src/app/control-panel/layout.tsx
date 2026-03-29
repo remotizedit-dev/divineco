@@ -1,11 +1,12 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, ChevronRight, Menu } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut, Menu, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
 
 const navigation = [
@@ -20,15 +21,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push("/");
-    } catch (error) {
-      console.error("Error signing out:", error);
+  const isLoginPage = pathname === "/control-panel/login";
+
+  useEffect(() => {
+    if (!isUserLoading && !user && !isLoginPage) {
+      router.push("/control-panel/login");
     }
+  }, [user, isUserLoading, isLoginPage, router]);
+
+  const handleLogout = () => {
+    signOut(auth).then(() => {
+      router.push("/control-panel/login");
+    });
   };
+
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If we are on the login page, don't show the sidebar layout
+  if (isLoginPage) {
+    return <>{children}</>;
+  }
+
+  // If not logged in and not on login page, render nothing while redirecting
+  if (!user) {
+    return null;
+  }
 
   return (
     <SidebarProvider>
@@ -79,8 +104,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold">
-              AD
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold uppercase">
+              {user.email?.substring(0, 2) || "AD"}
             </div>
           </div>
         </header>
