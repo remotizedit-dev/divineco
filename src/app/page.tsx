@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -48,10 +47,9 @@ export default function Home() {
     );
   }
 
-  // Ensure we have hero images to display
-  const heroImages = PlaceHolderImages.length >= 2 
+  const heroImages = PlaceHolderImages && PlaceHolderImages.length >= 2 
     ? [PlaceHolderImages[0], PlaceHolderImages[1]] 
-    : PlaceHolderImages.length > 0 ? [PlaceHolderImages[0]] : [];
+    : PlaceHolderImages && PlaceHolderImages.length > 0 ? [PlaceHolderImages[0]] : [];
 
   return (
     <main className="flex flex-col">
@@ -245,7 +243,7 @@ function Footer() {
             <li><Link href="/about" className="hover:text-primary">About Us</Link></li>
             <li><Link href="/contact" className="hover:text-primary">Contact Us</Link></li>
             <li><Link href="/shipping" className="hover:text-primary">Shipping Policy</Link></li>
-            <li><Link href="/returns" className="hover:text-primary">Returns & Exchanges</Link></li>
+            <li><Link href="/control-panel" className="hover:text-primary">Admin Panel</Link></li>
           </ul>
         </div>
         <div>
