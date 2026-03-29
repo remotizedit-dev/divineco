@@ -4,7 +4,9 @@
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { LayoutDashboard, ShoppingCart, Package, Users, Settings, LogOut, ChevronRight, Menu } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 
 const navigation = [
   { name: 'Dashboard', href: '/control-panel', icon: LayoutDashboard },
@@ -16,6 +18,17 @@ const navigation = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -46,7 +59,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="mt-auto p-4 border-t">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton className="text-destructive hover:text-destructive">
+              <SidebarMenuButton 
+                className="text-destructive hover:text-destructive"
+                onClick={handleLogout}
+              >
                 <LogOut className="w-5 h-5" />
                 <span>Logout</span>
               </SidebarMenuButton>
