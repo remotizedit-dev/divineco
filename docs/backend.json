@@ -1,0 +1,794 @@
+{
+  "entities": {
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a product category used for organizing products and dynamic navigation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category, e.g., 'Dresses'."
+        },
+        "slug": {
+          "type": "string",
+          "description": "A URL-friendly unique identifier for the category, used for routing (e.g., 'dresses')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the category."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the category was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the category was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "slug",
+        "description",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product available for sale in the Divine.Co platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Product entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product."
+        },
+        "slug": {
+          "type": "string",
+          "description": "A URL-friendly unique identifier for the product."
+        },
+        "basePrice": {
+          "type": "number",
+          "description": "The original selling price of the product before any discounts."
+        },
+        "discountedPrice": {
+          "type": "number",
+          "description": "The price after applying any discounts, if applicable."
+        },
+        "flashSaleEndTime": {
+          "type": "string",
+          "description": "The timestamp when a flash sale for this product ends, enabling a countdown timer.",
+          "format": "date-time"
+        },
+        "imageUrls": {
+          "type": "array",
+          "description": "An array of URLs for the main product images.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "The URL for the primary thumbnail image of the product."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to the Category this product belongs to. (Relationship: Category 1:N Product)"
+        },
+        "tags": {
+          "type": "array",
+          "description": "An array of descriptive tags for the product (e.g., 'Hot Sale', 'New Arrival').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the product is currently active and visible on the storefront."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the product was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the product was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "slug",
+        "basePrice",
+        "imageUrls",
+        "thumbnailUrl",
+        "categoryId",
+        "tags",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ProductVariant": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProductVariant",
+      "type": "object",
+      "description": "Represents a specific variant of a product, such as a particular color or size, with its own stock and specific images.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ProductVariant entity."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product this variant belongs to. (Relationship: Product 1:N ProductVariant)"
+        },
+        "color": {
+          "type": "string",
+          "description": "The color of the product variant."
+        },
+        "size": {
+          "type": "string",
+          "description": "The size of the product variant (e.g., 'S', 'M', 'L')."
+        },
+        "sku": {
+          "type": "string",
+          "description": "Stock Keeping Unit, a unique identifier for this specific product variant."
+        },
+        "stockQuantity": {
+          "type": "number",
+          "description": "The current quantity of this specific variant in stock."
+        },
+        "variantSpecificImageUrls": {
+          "type": "array",
+          "description": "An array of URLs for images specific to this variant (e.g., images showing the product in this color).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "priceAdjustment": {
+          "type": "number",
+          "description": "An optional numerical adjustment to the base product price for this specific variant."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the variant was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the variant was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "productId",
+        "color",
+        "sku",
+        "stockQuantity",
+        "variantSpecificImageUrls",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Customer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Customer",
+      "type": "object",
+      "description": "Represents a customer of Divine.Co, used for order tracking and POS lookups.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Customer entity (could be linked to Firebase Auth User ID)."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the customer."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the customer."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the customer.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The phone number of the customer, used for lookups in the POS system."
+        },
+        "shippingAddress": {
+          "type": "string",
+          "description": "The default shipping address for the customer."
+        },
+        "billingAddress": {
+          "type": "string",
+          "description": "The default billing address for the customer."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the customer record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the customer record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "phoneNumber",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents a customer's purchase, including details about the items, shipping, and payment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the Customer who placed the order. (Relationship: Customer 1:N Order)"
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "A human-readable unique order number."
+        },
+        "orderDate": {
+          "type": "string",
+          "description": "The date and time when the order was placed.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the order (e.g., Pending, Accepted, Pre-order, Delivered, Cancelled).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total amount of the order, including shipping and discounts."
+        },
+        "subtotalAmount": {
+          "type": "number",
+          "description": "The sum of prices of all items in the order before shipping or discounts."
+        },
+        "shippingCost": {
+          "type": "number",
+          "description": "The cost of shipping for this order."
+        },
+        "discountAmount": {
+          "type": "number",
+          "description": "The total discount applied to this order (from coupons, etc.)."
+        },
+        "couponCodeUsed": {
+          "type": "string",
+          "description": "The code of the coupon used for this order, if any."
+        },
+        "shippingAddress": {
+          "type": "string",
+          "description": "The full shipping address for this specific order."
+        },
+        "billingAddress": {
+          "type": "string",
+          "description": "The full billing address for this specific order."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "The payment method used for the order (e.g., 'Cash on Delivery')."
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Indicates if the order has been paid. For COD, this might be true upon delivery."
+        },
+        "deliveryRegion": {
+          "type": "string",
+          "description": "The region for delivery (e.g., 'Inside Dhaka', 'Outside Dhaka')."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes related to the order, from customer or admin."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the order was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the order was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "customerId",
+        "orderNumber",
+        "orderDate",
+        "status",
+        "totalAmount",
+        "subtotalAmount",
+        "shippingCost",
+        "shippingAddress",
+        "billingAddress",
+        "paymentMethod",
+        "isPaid",
+        "deliveryRegion",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Details of a specific product variant purchased as part of an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OrderItem entity."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the Order this item belongs to. (Relationship: Order 1:N OrderItem)"
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product purchased. (Relationship: Product 1:N OrderItem)"
+        },
+        "productVariantId": {
+          "type": "string",
+          "description": "Reference to the specific ProductVariant purchased. (Relationship: ProductVariant 1:N OrderItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of this product variant purchased."
+        },
+        "unitPriceAtPurchase": {
+          "type": "number",
+          "description": "The price of a single unit of the product variant at the time of purchase."
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "The total price for this order item (quantity * unitPriceAtPurchase)."
+        },
+        "productSnapshotName": {
+          "type": "string",
+          "description": "A snapshot of the product name at the time of purchase for historical record."
+        },
+        "productSnapshotImage": {
+          "type": "string",
+          "description": "A snapshot of the product's main image URL at the time of purchase for historical record."
+        },
+        "variantSnapshotDetails": {
+          "type": "string",
+          "description": "A JSON string storing key variant details (e.g., color, size) at the time of purchase."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the order item was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the order item was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "productId",
+        "productVariantId",
+        "quantity",
+        "unitPriceAtPurchase",
+        "subtotal",
+        "productSnapshotName",
+        "productSnapshotImage",
+        "variantSnapshotDetails",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Coupon": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Coupon",
+      "type": "object",
+      "description": "Represents a promotional coupon that can be applied to orders.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Coupon entity."
+        },
+        "code": {
+          "type": "string",
+          "description": "The unique code that users enter to apply the coupon."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of discount offered by the coupon ('fixed' amount or 'percentage').",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "type": "number",
+          "description": "The value of the discount (e.g., 20 for 20% off or 50 for $50 off)."
+        },
+        "minOrderAmount": {
+          "type": "number",
+          "description": "The minimum order amount required for the coupon to be applicable."
+        },
+        "maxUses": {
+          "type": "number",
+          "description": "The maximum number of times this coupon can be used in total across all customers."
+        },
+        "usesCount": {
+          "type": "number",
+          "description": "The current number of times this coupon has been used."
+        },
+        "expirationDate": {
+          "type": "string",
+          "description": "The date and time when the coupon expires.",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the coupon is currently active and usable."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the coupon was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the coupon was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "type",
+        "value",
+        "usesCount",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a customer review for a product, including rating and optional content and screenshots.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Review entity."
+        },
+        "productId": {
+          "type": "string",
+          "description": "Reference to the Product being reviewed. (Relationship: Product 1:N Review)"
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Reference to the Customer who submitted the review. (Relationship: Customer 1:N Review)"
+        },
+        "rating": {
+          "type": "number",
+          "description": "The star rating given by the customer (e.g., 1 to 5)."
+        },
+        "comment": {
+          "type": "string",
+          "description": "The textual comment provided by the customer."
+        },
+        "screenshotUrls": {
+          "type": "array",
+          "description": "An array of URLs for screenshots or images uploaded with the review.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reviewDate": {
+          "type": "string",
+          "description": "The date and time when the review was submitted.",
+          "format": "date-time"
+        },
+        "isApproved": {
+          "type": "boolean",
+          "description": "Indicates whether the review has been approved by an administrator for public display."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the review was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the review was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "productId",
+        "customerId",
+        "rating",
+        "reviewDate",
+        "isApproved",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "HomepageBanner": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "HomepageBanner",
+      "type": "object",
+      "description": "Represents a banner displayed on the storefront homepage, often part of a slider.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the HomepageBanner entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title text displayed on the banner."
+        },
+        "description": {
+          "type": "string",
+          "description": "A short description or tagline for the banner."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "The URL of the image displayed in the banner."
+        },
+        "targetUrl": {
+          "type": "string",
+          "description": "The URL where the banner links to when clicked.",
+          "format": "uri"
+        },
+        "displayOrder": {
+          "type": "number",
+          "description": "A numerical value indicating the order in which banners should be displayed."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether the banner is currently active and displayed on the homepage."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the banner was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the banner was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "imageUrl",
+        "targetUrl",
+        "displayOrder",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Stores product categories. Publicly readable for storefront navigation, Admin-only write access. Includes unique slug for routing.",
+          "params": [
+            {
+              "name": "categoryId",
+              "description": "The unique identifier for the category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product details. Publicly readable for storefront display, Admin-only write access. Includes `categoryId` for filtering and `flashSaleEndTime` for countdowns.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier for the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}/productVariants/{variantId}",
+        "definition": {
+          "entityName": "ProductVariant",
+          "schema": {
+            "$ref": "#/backend/entities/ProductVariant"
+          },
+          "description": "Stores specific product variants (e.g., color, size, stock). Publicly readable, Admin-only write access. Nested under `/products/{productId}`.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier of the parent product."
+            },
+            {
+              "name": "variantId",
+              "description": "The unique identifier for the product variant."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customers/{customerId}",
+        "definition": {
+          "entityName": "Customer",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Stores customer profiles. Accessible by the customer (`request.auth.uid == customerId`) and administrators. The `id` field matches Firebase Auth `uid`.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The unique identifier for the customer, corresponding to Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores customer orders. Includes denormalized `customerId` for authorization independence. Accessible by the owning customer and administrators for read/write. Supports inventory sync logic.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}/orderItems/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Stores individual items within an order. Nested under `/orders/{orderId}`. Includes denormalized `customerId` from the parent order for authorization independence.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the parent order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "The unique identifier for the order item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/coupons/{couponId}",
+        "definition": {
+          "entityName": "Coupon",
+          "schema": {
+            "$ref": "#/backend/entities/Coupon"
+          },
+          "description": "Stores promotional coupons. Publicly readable for active coupons (for client-side validation), Admin-only write to manage details and usage counts (`usesCount`).",
+          "params": [
+            {
+              "name": "couponId",
+              "description": "The unique identifier for the coupon."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores customer reviews for products. Includes denormalized `productId` and `customerId` for efficient queries and authorization independence. Publicly readable only if `isApproved` is true. Customer can write their own reviews, Admin can read/write all.",
+          "params": [
+            {
+              "name": "reviewId",
+              "description": "The unique identifier for the review."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/homepageBanners/{bannerId}",
+        "definition": {
+          "entityName": "HomepageBanner",
+          "schema": {
+            "$ref": "#/backend/entities/HomepageBanner"
+          },
+          "description": "Stores homepage banner configurations. Publicly readable for storefront display, Admin-only write access.",
+          "params": [
+            {
+              "name": "bannerId",
+              "description": "The unique identifier for the homepage banner."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "adminRole",
+          "schema": {
+            "$ref": "#/backend/entities/Customer"
+          },
+          "description": "Dedicated collection for Database Access Control (DBAC). Existence of a document here (`roles_admin/{uid}`) grants administrative privileges. Read-only by the `userId` itself, Admin-only write access.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of a user with administrator privileges."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The proposed Firestore structure prioritizes secure, scalable, and debuggable access patterns by adhering strictly to the core design principles:\n\n1.  **Authorization Independence:** This is achieved by extensively denormalizing authorization-critical fields. For instance:\n    *   The `/orders/{orderId}` collection includes a `customerId` field. This allows both customers to query *their own* orders (`where('customerId', '==', request.auth.uid)`) and administrators to list *all* orders (QAP) without requiring a `get()` operation to a parent `customer` document in security rules. Rules can directly check `resource.data.customerId == request.auth.uid`.\n    *   Similarly, `/orders/{orderId}/orderItems/{orderItemId}` documents will denormalize the `customerId` from their parent order. This is crucial: even though `orderId` is in the path, checking ownership of an `orderItem` directly requires checking `customerId` within the `orderItem` document itself, eliminating a `get()` call to the parent `/orders/{orderId}` document.\n    *   `/reviews/{reviewId}` documents include both `productId` and `customerId`. This enables direct access checks for review submitters (`request.auth.uid == resource.data.customerId`) and efficient querying for product-specific reviews without complex rule lookups.\n\n2.  **QAPs (Rules are not Filters):** This design enables efficient `list` operations for various user types without relying on Firestore security rules to filter results. Instead, filtering is structural or query-based:\n    *   **Public Storefront Data:** Collections like `/categories`, `/products`, `/products/{productId}/productVariants`, and `/homepageBanners` are designed for public read access. Security rules simply allow `read` for authenticated or unauthenticated users, enabling direct fetching of all documents (or filtered by query, e.g., categoryId) without additional rule overhead.\n    *   **Customer-Specific Data:** The `/orders` collection, by containing `customerId`, allows customers to directly query `orders.where('customerId', '==', request.auth.uid)`. Security rules then *validate* this ownership rather than *filter* the list.\n    *   **Admin Data:** Collections are generally accessible to authenticated administrators, whose roles are determined by existence in `/roles_admin/{uid}`. This pattern allows admins to list all data in a collection (e.g., all orders, all customers) directly.\n    *   **Reviews:** Public users can list `/reviews` with a `where('isApproved', '==', true)` clause. The security rules will enforce that only approved reviews are readable by the public, acting as a validator, not a filter.\n\n3.  **Structural Segregation:** Data with different security postures are in separate collections or clearly delineated by fields:\n    *   Publicly visible content (products, categories, banners) is in global collections with public read access.\n    *   Customer-specific data (profiles, orders, order items) are protected by ownership.\n    *   Admin roles are separated into a dedicated `/roles_admin` collection.\n    *   Reviews, while stored globally, use an `isApproved` flag to segregate public vs. internal visibility, simplifying rules.\n\n4.  **Access Modeling:**\n    *   **Private Data:** `/customers/{customerId}` uses path-based ownership for customer profiles.\n    *   **Hierarchical Paths:** `/products/{productId}/productVariants/{variantId}` naturally groups variants under their parent product. `/orders/{orderId}/orderItems/{orderItemId}` groups items under their order, with denormalized `customerId` in `orderItem` for AI.\n    *   **Collaborative Data:** Not explicitly required for this e-commerce app beyond admin roles, but the `roles_admin` collection follows the "
+  }
+}

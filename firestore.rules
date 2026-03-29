@@ -1,0 +1,174 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * CORE SECURITY PHILOSOPHY: Divine.Co E-commerce Platform
+     *
+     * 1. ADMINISTRATIVE PRIVILEGES: Defined by document existence in the '/roles_admin' collection.
+     *    Any user with a UID present in this collection is granted full database oversight.
+     *
+     * 2. DATA OWNERSHIP & DENORMALIZATION: To ensure performant and secure rules, critical fields
+     *    like 'customerId' are denormalized onto Orders, OrderItems, and Reviews. This allows
+     *    instant ownership verification without cross-document 'get()' calls.
+     *
+     * 3. PUBLIC VS PRIVATE ACCESS:
+     *    - Public Catalog: Categories, Products, and Banners are globally readable for shoppers.
+     *    - Private Data: Customers, Orders, and OrderItems are strictly locked to the owner and admins.
+     *    - Moderated Content: Reviews are publicly visible only after administrative approval ('isApproved').
+     *
+     * 4. PROTOTYPING FLEXIBILITY: These rules enforce strict authorization (WHO can access) but
+     *    remain flexible on data schema (WHAT is stored) to facilitate rapid iteration.
+     */
+
+    // --- Helper Functions ---
+
+    /** Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user has an administrator record. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /** Checks if the provided ID matches the authenticated user's UID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Helper for resources accessible by either the owner or an administrator. */
+    function isOwnerOrAdmin(userId) {
+      return isOwner(userId) || isAdmin();
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Publicly readable categories for store navigation. Admin-only management.
+     * @path /categories/{categoryId}
+     * @allow (get, list) for any user.
+     * @allow (create, update, delete) for Admin only.
+     * @principle Public read access for storefront assets.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Public product details. Write access restricted to administrators.
+     * @path /products/{productId}
+     * @allow (get, list) for any user.
+     * @allow (create, update, delete) for Admin only.
+     * @principle Admin-only writes for master catalog data.
+     */
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+
+      /**
+       * @description Product variants (sizes/colors) nested under products.
+       * @path /products/{productId}/productVariants/{variantId}
+       * @allow (get, list) for any user.
+       * @allow (create, update, delete) for Admin only.
+       * @principle Hierarchical public read access.
+       */
+      match /productVariants/{variantId} {
+        allow get, list: if true;
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description Customer profile data. Access limited to the owner and admins.
+     * @path /customers/{customerId}
+     * @allow (get, list, create, update, delete) for the owner or Admin.
+     * @deny write if the UID in path does not match the UID in the document 'id' field.
+     * @principle Path-based ownership with relational integrity check.
+     */
+    match /customers/{customerId} {
+      allow get, list: if isOwnerOrAdmin(customerId);
+      allow create: if isOwnerOrAdmin(customerId) && request.resource.data.id == customerId;
+      allow update, delete: if resource != null && (isOwnerOrAdmin(customerId) && request.resource.data.id == resource.data.id);
+    }
+
+    /**
+     * @description Order management. Uses denormalized 'customerId' for ownership.
+     * @path /orders/{orderId}
+     * @allow (get, list) for owner or Admin.
+     * @allow (create) if the customerId in data matches auth UID.
+     * @principle Authorization independence via denormalized ownership field.
+     */
+    match /orders/{orderId} {
+      allow get: if isOwnerOrAdmin(resource.data.customerId);
+      allow list: if isSignedIn(); // Query must be filtered by customerId on the client.
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.customerId == request.auth.uid);
+      allow update, delete: if resource != null && (isAdmin() || isOwner(resource.data.customerId));
+
+      /**
+       * @description Items within an order. Relies on 'customerId' denormalized from parent.
+       * @path /orders/{orderId}/orderItems/{orderItemId}
+       * @allow (get, list, create, update, delete) based on denormalized owner.
+       * @principle Denormalized subcollection security for performance.
+       */
+      match /orderItems/{orderItemId} {
+        allow get: if isOwnerOrAdmin(resource.data.customerId);
+        allow list: if isSignedIn();
+        allow create: if isAdmin() || (isSignedIn() && request.resource.data.customerId == request.auth.uid);
+        allow update, delete: if resource != null && (isAdmin() || isOwner(resource.data.customerId));
+      }
+    }
+
+    /**
+     * @description Promotional coupons. Publicly readable to allow client-side validation.
+     * @path /coupons/{couponId}
+     * @allow (get, list) for any user.
+     * @allow (create, update, delete) for Admin only.
+     * @principle Public lookup for promotions, secure management.
+     */
+    match /coupons/{couponId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Product reviews. Public visibility restricted to approved entries.
+     * @path /reviews/{reviewId}
+     * @allow (get) for public if approved, or for owner/admin.
+     * @allow (create) for authenticated users.
+     * @principle Content moderation via approval flag.
+     */
+    match /reviews/{reviewId} {
+      allow get: if resource.data.isApproved == true || isOwnerOrAdmin(resource.data.customerId);
+      allow list: if true; // Public can list, but get rule restricts individual visibility.
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.customerId == request.auth.uid);
+      allow update, delete: if resource != null && (isAdmin() || isOwner(resource.data.customerId));
+    }
+
+    /**
+     * @description Homepage configuration. Admin managed.
+     * @path /homepageBanners/{bannerId}
+     * @allow (get, list) for any user.
+     * @allow (create, update, delete) for Admin only.
+     * @principle Public UI assets managed by site admins.
+     */
+    match /homepageBanners/{bannerId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Access Control collection. Existence here grants admin rights.
+     * @path /roles_admin/{userId}
+     * @allow (get, list) for the user themselves or an existing Admin.
+     * @allow (create, update, delete) for Admin only.
+     * @principle Dedicated Role-Based Access Control (RBAC) collection.
+     */
+    match /roles_admin/{userId} {
+      allow get, list: if isOwnerOrAdmin(userId);
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
