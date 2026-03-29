@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -27,9 +28,9 @@ export default function Home() {
           getProducts({ limit: 8 }),
           getCategories()
         ]);
-        setFlashSaleProducts(flash);
-        setFeaturedProducts(featured);
-        setCategories(cats);
+        setFlashSaleProducts(flash || []);
+        setFeaturedProducts(featured || []);
+        setCategories(cats || []);
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
       } finally {
@@ -47,6 +48,11 @@ export default function Home() {
     );
   }
 
+  // Ensure we have hero images to display
+  const heroImages = PlaceHolderImages.length >= 2 
+    ? [PlaceHolderImages[0], PlaceHolderImages[1]] 
+    : PlaceHolderImages.length > 0 ? [PlaceHolderImages[0]] : [];
+
   return (
     <main className="flex flex-col">
       <AnnouncementTicker />
@@ -54,35 +60,45 @@ export default function Home() {
       
       {/* Hero Section */}
       <section className="relative h-[60vh] md:h-[80vh] w-full overflow-hidden">
-        <Carousel className="w-full h-full" opts={{ loop: true }}>
-          <CarouselContent className="h-full ml-0">
-            {[PlaceHolderImages[0], PlaceHolderImages[1]].map((image, index) => (
-              <CarouselItem key={index} className="relative w-full h-full pl-0">
-                <Image 
-                  src={image.imageUrl} 
-                  alt={image.description} 
-                  fill 
-                  className="object-cover"
-                  priority={index === 0}
-                  data-ai-hint={image.imageHint}
-                />
-                <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center text-white text-center p-4">
-                  <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg">
-                    {index === 0 ? "Summer Radiance" : "Timeless Elegance"}
-                  </h1>
-                  <p className="text-lg md:text-xl mb-8 max-w-xl opacity-90">
-                    Discover our handpicked premium collection designed for the modern woman.
-                  </p>
-                  <Button size="lg" className="rounded-full px-10 h-14 text-lg">
-                    Shop Collection
-                  </Button>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious className="left-4 bg-white/50 border-none hover:bg-white" />
-          <CarouselNext className="right-4 bg-white/50 border-none hover:bg-white" />
-        </Carousel>
+        {heroImages.length > 0 ? (
+          <Carousel className="w-full h-full" opts={{ loop: true }}>
+            <CarouselContent className="h-full ml-0">
+              {heroImages.map((image, index) => (
+                <CarouselItem key={index} className="relative w-full h-full pl-0">
+                  <Image 
+                    src={image.imageUrl} 
+                    alt={image.description} 
+                    fill 
+                    className="object-cover"
+                    priority={index === 0}
+                    data-ai-hint={image.imageHint}
+                  />
+                  <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center text-white text-center p-4">
+                    <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg">
+                      {index === 0 ? "Summer Radiance" : "Timeless Elegance"}
+                    </h1>
+                    <p className="text-lg md:text-xl mb-8 max-w-xl opacity-90">
+                      Discover our handpicked premium collection designed for the modern woman.
+                    </p>
+                    <Button size="lg" className="rounded-full px-10 h-14 text-lg" asChild>
+                      <Link href="/products">Shop Collection</Link>
+                    </Button>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            {heroImages.length > 1 && (
+              <>
+                <CarouselPrevious className="left-4 bg-white/50 border-none hover:bg-white" />
+                <CarouselNext className="right-4 bg-white/50 border-none hover:bg-white" />
+              </>
+            )}
+          </Carousel>
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <p className="text-muted-foreground">Premium Boutique Experience</p>
+          </div>
+        )}
       </section>
 
       {/* Categories Grid */}
@@ -111,6 +127,9 @@ export default function Home() {
               </div>
             </Link>
           ))}
+          {categories.length === 0 && Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-64 rounded-xl bg-muted animate-pulse" />
+          ))}
         </div>
       </section>
 
@@ -123,8 +142,8 @@ export default function Home() {
                 <h2 className="text-3xl font-headline font-bold text-primary">Flash Sale</h2>
                 <CountdownTimer targetDate={new Date(Date.now() + 86400000)} />
               </div>
-              <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white">
-                View All Offers
+              <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white" asChild>
+                <Link href="/flash-sales">View All Offers</Link>
               </Button>
             </div>
             
@@ -144,6 +163,11 @@ export default function Home() {
           {featuredProducts.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
+          {featuredProducts.length === 0 && !isLoading && (
+             <div className="col-span-full py-20 text-center text-muted-foreground">
+                No products found.
+             </div>
+          )}
         </div>
       </section>
 
