@@ -1,19 +1,51 @@
+'use client';
 
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/public/Navbar";
 import { AnnouncementTicker } from "@/components/public/AnnouncementTicker";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { getProducts, getCategories } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
-export default async function Home() {
-  const flashSaleProducts = await getProducts({ isFlashSale: true, limit: 4 });
-  const featuredProducts = await getProducts({ limit: 8 });
-  const categories = await getCategories();
+export default function Home() {
+  const [flashSaleProducts, setFlashSaleProducts] = useState<any[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [flash, featured, cats] = await Promise.all([
+          getProducts({ isFlashSale: true, limit: 4 }),
+          getProducts({ limit: 8 }),
+          getCategories()
+        ]);
+        setFlashSaleProducts(flash);
+        setFeaturedProducts(featured);
+        setCategories(cats);
+      } catch (error) {
+        console.error("Failed to fetch homepage data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground animate-pulse">Loading boutique experience...</p>
+      </div>
+    );
+  }
 
   return (
     <main className="flex flex-col">
@@ -104,6 +136,16 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {/* Featured Products */}
+      <section className="container mx-auto px-4 py-16">
+        <h2 className="text-3xl font-headline font-bold mb-10 text-center">New Arrivals</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {featuredProducts.map((product: any) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
 
       {/* Floating CTA for WhatsApp/Messenger */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-50">

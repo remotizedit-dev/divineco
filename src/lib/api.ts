@@ -1,3 +1,4 @@
+'use client';
 
 import { 
   collection, 
@@ -13,7 +14,6 @@ import {
   limit, 
   increment, 
   writeBatch,
-  Timestamp,
   serverTimestamp
 } from "firebase/firestore";
 import { db } from "./firebase";
