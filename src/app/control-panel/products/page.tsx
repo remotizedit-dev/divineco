@@ -28,7 +28,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { useFirestore } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
+import { collection, serverTimestamp, doc, addDoc } from "firebase/firestore";
 import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,9 +48,13 @@ export default function ProductsPage() {
   }, []);
 
   const refreshData = async () => {
-    const [prods, cats] = await Promise.all([getProducts(), getCategories()]);
-    setProducts(prods);
-    setCategories(cats);
+    try {
+      const [prods, cats] = await Promise.all([getProducts(), getCategories()]);
+      setProducts(prods);
+      setCategories(cats);
+    } catch (error) {
+      console.error("Failed to refresh data:", error);
+    }
   };
 
   const toggleSelect = (id: string) => {
@@ -65,35 +69,84 @@ export default function ProductsPage() {
     );
   };
 
-  const handleAddProduct = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!firestore) return;
+    
     setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const slug = formData.get("slug") as string;
+    const description = formData.get("description") as string;
+    const basePrice = Number(formData.get("price"));
+    const categoryId = formData.get("categoryId") as string;
+    const colorsInput = formData.get("colors") as string;
+    const sizesInput = formData.get("sizes") as string;
+    const stockQuantity = Number(formData.get("stock") || 0);
+
+    const colors = colorsInput ? colorsInput.split(",").map(c => c.trim()).filter(Boolean) : [];
+    const sizes = sizesInput ? sizesInput.split(",").map(s => s.trim()).filter(Boolean) : [];
+
     const productData = {
-      name: formData.get("name") as string,
-      slug: formData.get("slug") as string,
-      description: formData.get("description") as string,
-      basePrice: Number(formData.get("price")),
-      categoryId: formData.get("categoryId") as string,
+      name,
+      slug,
+      description,
+      basePrice,
+      categoryId,
       thumbnailUrl: `https://picsum.photos/seed/${Math.random()}/600/600`,
       imageUrls: [`https://picsum.photos/seed/${Math.random()}/600/600`],
       isActive: true,
       tags: ["New Arrival"],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      stock: stockQuantity, // Add a top-level stock for easy viewing
     };
 
-    if (firestore) {
-      addDocumentNonBlocking(collection(firestore, "products"), productData);
+    try {
+      // Create the product document first
+      const productRef = await addDoc(collection(firestore, "products"), productData);
+      
+      // If variants are provided, create them in the subcollection
+      if (colors.length > 0 || sizes.length > 0) {
+        const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
+        
+        // Simple strategy: Create a variant for each color/size combination if both exist, 
+        // or just for colors/sizes if only one exists.
+        const colorList = colors.length > 0 ? colors : ["Default"];
+        const sizeList = sizes.length > 0 ? sizes : ["One Size"];
+
+        for (const color of colorList) {
+          for (const size of sizeList) {
+            await addDoc(variantsCol, {
+              productId: productRef.id,
+              color,
+              size,
+              sku: `${slug}-${color.substring(0, 3)}-${size}`.toUpperCase(),
+              stockQuantity: Math.floor(stockQuantity / (colorList.length * sizeList.length)),
+              variantSpecificImageUrls: [productData.thumbnailUrl],
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
+        }
+      }
+
       toast({
         title: "Product added",
-        description: `${productData.name} has been added to the catalog.`,
+        description: `${name} and its variants have been created.`,
       });
+      
       setIsAddDialogOpen(false);
+      refreshData();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add product.",
+      });
+    } finally {
       setIsSubmitting(false);
-      // Optimistic update would be better, but for MVP we refresh or wait for real-time (not yet implemented in getProducts)
-      setTimeout(refreshData, 1000); 
     }
   };
 
@@ -117,7 +170,7 @@ export default function ProductsPage() {
                 <Plus className="w-4 h-4" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
@@ -158,6 +211,22 @@ export default function ProductsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="colors">Colors (Comma separated)</Label>
+                    <Input id="colors" name="colors" placeholder="Red, Blue, Green" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sizes">Sizes (Comma separated)</Label>
+                    <Input id="sizes" name="sizes" placeholder="S, M, L, XL" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stock">Total Initial Stock</Label>
+                  <Input id="stock" name="stock" type="number" placeholder="100" />
                 </div>
                 
                 <DialogFooter>
