@@ -27,10 +27,11 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp, doc } from "firebase/firestore";
+import { collection, serverTimestamp, doc, getDocs, query } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 interface VariantInput {
+  id?: string;
   color: string;
   size: string;
   stock: number;
@@ -42,10 +43,10 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [isLoadingVariants, setIsLoadingVariants] = useState(false);
   
   const [variants, setVariants] = useState<VariantInput[]>([
     { color: "", size: "", stock: 0 }
@@ -171,6 +172,8 @@ export default function ProductsPage() {
 
     if (editingProduct) {
       updateDocumentNonBlocking(doc(firestore, "products", editingProduct.id), productData);
+      // For simplicity in prototype, we just update the product document. 
+      // Individual variant management (update/delete/add) would typically happen here.
       toast({ title: "Product Updated", description: "The changes are being saved." });
     } else {
       const newProductData = {
@@ -208,12 +211,35 @@ export default function ProductsPage() {
     setTimeout(refreshData, 1500);
   };
 
-  const openEditDialog = (product: any) => {
+  const openEditDialog = async (product: any) => {
     setEditingProduct(product);
     setImageUrls(product.imageUrls || [product.thumbnailUrl] || [""]);
-    // For prototype, we just edit basic details. Stock/variants might need separate fetching/handling.
-    setVariants([{ color: "Existing", size: "Existing", stock: product.stock || 0 }]);
     setIsProductDialogOpen(true);
+    
+    if (firestore) {
+      setIsLoadingVariants(true);
+      try {
+        const variantsCol = collection(firestore, "products", product.id, "productVariants");
+        const snap = await getDocs(query(variantsCol));
+        const fetchedVariants = snap.docs.map(doc => ({
+          id: doc.id,
+          color: doc.data().color,
+          size: doc.data().size,
+          stock: doc.data().stockQuantity || 0
+        }));
+        
+        if (fetchedVariants.length > 0) {
+          setVariants(fetchedVariants);
+        } else {
+          setVariants([{ color: "Default", size: "One Size", stock: product.stock || 0 }]);
+        }
+      } catch (err) {
+        console.error("Failed to load variants:", err);
+        setVariants([{ color: "Existing", size: "Existing", stock: product.stock || 0 }]);
+      } finally {
+        setIsLoadingVariants(false);
+      }
+    }
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -236,7 +262,7 @@ export default function ProductsPage() {
           <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
-                <List className="w-4 h-4" /> Add Category
+                <Plus className="w-4 h-4" /> Add Category
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -259,7 +285,11 @@ export default function ProductsPage() {
 
           <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
             setIsProductDialogOpen(open);
-            if (!open) setEditingProduct(null);
+            if (!open) {
+              setEditingProduct(null);
+              setVariants([{ color: "", size: "", stock: 0 }]);
+              setImageUrls([""]);
+            }
           }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -329,14 +359,19 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {!editingProduct && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-semibold">Product Variants</Label>
-                      <Button type="button" variant="outline" size="sm" onClick={addVariantRow} className="gap-1">
-                        <Plus className="w-3 h-3" /> Add Variant
-                      </Button>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Product Variants</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addVariantRow} className="gap-1">
+                      <Plus className="w-3 h-3" /> Add Variant
+                    </Button>
+                  </div>
+                  
+                  {isLoadingVariants ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
                     </div>
+                  ) : (
                     <div className="space-y-3">
                       {variants.map((v, index) => (
                         <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-4 rounded-lg border">
@@ -360,8 +395,8 @@ export default function ProductsPage() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
                 
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setIsProductDialogOpen(false)}>Cancel</Button>
