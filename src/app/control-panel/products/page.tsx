@@ -47,6 +47,7 @@ export default function ProductsPage() {
   const [variants, setVariants] = useState<VariantInput[]>([
     { color: "", size: "", stock: 0 }
   ]);
+  const [imageUrls, setImageUrls] = useState<string[]>([""]);
   
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -92,6 +93,19 @@ export default function ProductsPage() {
     setVariants(newVariants);
   };
 
+  const addImageUrlRow = () => setImageUrls([...imageUrls, ""]);
+  
+  const removeImageUrlRow = (index: number) => {
+    if (imageUrls.length <= 1) return;
+    setImageUrls(imageUrls.filter((_, i) => i !== index));
+  };
+
+  const updateImageUrl = (index: number, value: string) => {
+    const newUrls = [...imageUrls];
+    newUrls[index] = value;
+    setImageUrls(newUrls);
+  };
+
   const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
@@ -104,10 +118,14 @@ export default function ProductsPage() {
     const description = formData.get("description") as string;
     const basePrice = Number(formData.get("price"));
     const categoryId = formData.get("categoryId") as string;
-    const imageUrl = formData.get("imageUrl") as string;
 
     const totalStock = variants.reduce((sum, v) => sum + Number(v.stock), 0);
-    const finalImageUrl = imageUrl || `https://picsum.photos/seed/${Math.random()}/600/600`;
+    
+    // Filter and sanitize image URLs
+    const finalImages = imageUrls.filter(url => url.trim() !== "");
+    const defaultPlaceholder = `https://picsum.photos/seed/${Math.random()}/600/600`;
+    const thumbnailUrl = finalImages[0] || defaultPlaceholder;
+    const images = finalImages.length > 0 ? finalImages : [defaultPlaceholder];
 
     const productData = {
       name,
@@ -115,8 +133,8 @@ export default function ProductsPage() {
       description,
       basePrice,
       categoryId,
-      thumbnailUrl: finalImageUrl,
-      imageUrls: [finalImageUrl],
+      thumbnailUrl,
+      imageUrls: images,
       isActive: true,
       tags: ["New Arrival"],
       createdAt: serverTimestamp(),
@@ -136,7 +154,7 @@ export default function ProductsPage() {
             size: variant.size || "One Size",
             sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
             stockQuantity: Number(variant.stock),
-            variantSpecificImageUrls: [finalImageUrl],
+            variantSpecificImageUrls: [thumbnailUrl],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -150,6 +168,7 @@ export default function ProductsPage() {
       
       setIsAddDialogOpen(false);
       setVariants([{ color: "", size: "", stock: 0 }]);
+      setImageUrls([""]);
       refreshData();
     } catch (error: any) {
       toast({
@@ -182,11 +201,11 @@ export default function ProductsPage() {
                 <Plus className="w-4 h-4" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddProduct} className="space-y-6 py-4">
+              <form onSubmit={handleAddProduct} className="space-y-8 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Product Name</Label>
@@ -200,7 +219,7 @@ export default function ProductsPage() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" placeholder="Describe the product details..." required />
+                  <Textarea id="description" name="description" placeholder="Describe the product details..." required className="min-h-[100px]" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -225,15 +244,38 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Product Image URL</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input id="imageUrl" name="imageUrl" placeholder="https://example.com/image.jpg" />
-                      <ImageIcon className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Product Images</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addImageUrlRow} className="gap-1">
+                      <Plus className="w-3 h-3" /> Add URL
+                    </Button>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Provide a direct link to the product image.</p>
+                  <div className="space-y-3">
+                    {imageUrls.map((url, index) => (
+                      <div key={index} className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Input 
+                            value={url} 
+                            onChange={(e) => updateImageUrl(index, e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                          <ImageIcon className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive shrink-0"
+                          onClick={() => removeImageUrlRow(index)}
+                          disabled={imageUrls.length <= 1}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">The first image will be used as the product thumbnail.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -246,14 +288,14 @@ export default function ProductsPage() {
                   
                   <div className="space-y-3">
                     {variants.map((v, index) => (
-                      <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-3 rounded-lg border">
+                      <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-4 rounded-lg border">
                         <div className="col-span-4 space-y-1.5">
                           <Label className="text-xs">Color</Label>
                           <Input 
                             value={v.color} 
                             onChange={(e) => updateVariant(index, "color", e.target.value)}
                             placeholder="Red"
-                            className="h-8 text-sm"
+                            className="h-9 text-sm"
                           />
                         </div>
                         <div className="col-span-4 space-y-1.5">
@@ -262,7 +304,7 @@ export default function ProductsPage() {
                             value={v.size} 
                             onChange={(e) => updateVariant(index, "size", e.target.value)}
                             placeholder="M"
-                            className="h-8 text-sm"
+                            className="h-9 text-sm"
                             required
                           />
                         </div>
@@ -273,16 +315,16 @@ export default function ProductsPage() {
                             value={v.stock} 
                             onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)}
                             placeholder="0"
-                            className="h-8 text-sm"
+                            className="h-9 text-sm"
                             required
                           />
                         </div>
-                        <div className="col-span-1 pb-0.5">
+                        <div className="col-span-1 pb-1">
                           <Button 
                             type="button" 
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 text-destructive"
+                            className="h-9 w-9 text-destructive"
                             onClick={() => removeVariantRow(index)}
                             disabled={variants.length <= 1}
                           >
@@ -293,7 +335,7 @@ export default function ProductsPage() {
                     ))}
                   </div>
                   <p className="text-[10px] text-muted-foreground italic">
-                    Total stock will be calculated automatically.
+                    Total stock will be calculated automatically based on variants.
                   </p>
                 </div>
                 
@@ -309,12 +351,12 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 bg-background p-4 rounded-lg border">
+      <div className="flex items-center gap-4 bg-background p-4 rounded-lg border shadow-sm">
         <Search className="w-5 h-5 text-muted-foreground" />
         <Input placeholder="Search by product name..." className="border-none shadow-none focus-visible:ring-0" />
       </div>
 
-      <div className="bg-background rounded-lg border overflow-hidden">
+      <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
