@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/public/Navbar";
 import { AnnouncementTicker } from "@/components/public/AnnouncementTicker";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/lib/api";
@@ -139,10 +138,6 @@ export default function Home() {
                   <h2 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-2 tracking-tight">Flash Sale</h2>
                   <p className="text-muted-foreground italic text-sm">Limited time premium footwear offers</p>
                 </div>
-                <CountdownTimer 
-                  targetDate={new Date(Date.now() + 86400000)} 
-                  className="h-16 text-3xl px-8 rounded-3xl shadow-xl shadow-primary/10 border-primary/20 bg-white"
-                />
               </div>
               <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white rounded-full px-12 h-14 font-bold" asChild>
                 <Link href="/products?sale=true">View All Offers</Link>
