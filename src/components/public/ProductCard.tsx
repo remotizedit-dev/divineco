@@ -1,17 +1,15 @@
-
 'use client';
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 export function ProductCard({ product }: { product: any }) {
-  // Use salesPrice since we updated the schema to have costPrice/salesPrice
-  const displayPrice = product.salesPrice || 0;
-  const isSale = product.isFlashSale || (product.discountedPrice && product.discountedPrice < displayPrice);
+  // Logic to determine if a product is on sale based on variants or flags
+  const isSale = product.isFlashSale === true || (product.discountedPrice && product.discountedPrice < product.salesPrice);
 
   return (
-    <div className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
       <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden">
         <Image 
           src={product.imageUrls?.[0] || product.thumbnailUrl || 'https://picsum.photos/seed/placeholder/400/500'} 
@@ -32,19 +30,21 @@ export function ProductCard({ product }: { product: any }) {
           </Badge>
         )}
       </Link>
-      <div className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{product.categoryName || 'Boutique'}</p>
+      <div className="p-4 flex flex-col flex-1">
+        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+          {product.categoryName || 'Collection'}
+        </p>
         <Link href={`/product/${product.slug}`} className="block text-sm font-medium hover:text-primary transition-colors line-clamp-1 mb-2">
           {product.name}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="mt-auto flex items-center gap-2">
           {isSale && product.discountedPrice ? (
             <>
               <span className="text-primary font-bold">Tk {product.discountedPrice}</span>
-              <span className="text-muted-foreground line-through text-xs">Tk {displayPrice}</span>
+              <span className="text-muted-foreground line-through text-xs">Tk {product.salesPrice}</span>
             </>
           ) : (
-            <span className="text-primary font-bold">Tk {displayPrice}</span>
+            <span className="text-primary font-bold">Tk {product.salesPrice}</span>
           )}
         </div>
       </div>

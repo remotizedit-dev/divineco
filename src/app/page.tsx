@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -7,9 +6,9 @@ import { AnnouncementTicker } from "@/components/public/AnnouncementTicker";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { getProducts, getCategories } from "@/lib/api";
+import { ProductCard } from "@/components/public/ProductCard";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -175,49 +174,6 @@ export default function Home() {
   );
 }
 
-function ProductCard({ product }: { product: any }) {
-  const isSale = product.discountedPrice && product.discountedPrice < product.salesPrice;
-
-  return (
-    <div className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden">
-        <Image 
-          src={product.imageUrls?.[0] || product.thumbnailUrl || 'https://placehold.co/400x500'} 
-          alt={product.name} 
-          fill 
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        {product.tags?.map((tag: string, idx: number) => (
-          <Badge key={idx} className="absolute bottom-3 left-3 bg-primary text-white text-[10px] uppercase font-bold px-2 py-0.5 rounded-sm">
-            {tag}
-          </Badge>
-        ))}
-        {isSale && (
-          <Badge className="absolute top-3 right-3 bg-red-500 text-white">
-            SALE
-          </Badge>
-        )}
-      </Link>
-      <div className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{product.categoryName}</p>
-        <Link href={`/product/${product.slug}`} className="block text-sm font-medium hover:text-primary transition-colors line-clamp-1 mb-2">
-          {product.name}
-        </Link>
-        <div className="flex items-center gap-2">
-          {isSale ? (
-            <>
-              <span className="text-primary font-bold">Tk {product.discountedPrice}</span>
-              <span className="text-muted-foreground line-through text-xs">Tk {product.salesPrice}</span>
-            </>
-          ) : (
-            <span className="text-primary font-bold">Tk {product.salesPrice}</span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function Footer() {
   return (
     <footer className="bg-muted py-16 mt-20">
@@ -231,16 +187,15 @@ function Footer() {
         <div>
           <h4 className="font-bold mb-6">Quick Links</h4>
           <ul className="space-y-3 text-sm text-muted-foreground">
-            <li><Link href="/about" className="hover:text-primary">About Us</Link></li>
-            <li><Link href="/contact" className="hover:text-primary">Contact Us</Link></li>
+            <li><Link href="/products" className="hover:text-primary">Our Collections</Link></li>
             <li><Link href="/control-panel" className="hover:text-primary">Admin Panel</Link></li>
           </ul>
         </div>
         <div>
           <h4 className="font-bold mb-6">Customer Service</h4>
           <ul className="space-y-3 text-sm text-muted-foreground">
-            <li><Link href="/track" className="hover:text-primary">Track Order</Link></li>
-            <li><Link href="/faq" className="hover:text-primary">FAQs</Link></li>
+            <li><Link href="#" className="hover:text-primary">Track Order</Link></li>
+            <li><Link href="#" className="hover:text-primary">FAQs</Link></li>
           </ul>
         </div>
         <div>
