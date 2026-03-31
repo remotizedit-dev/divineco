@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react";
@@ -10,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, ArrowRight, ShieldCheck, Truck, Ticket, Check } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Truck, Ticket, Check, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp, doc, increment } from "firebase/firestore";
