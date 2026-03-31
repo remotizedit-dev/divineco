@@ -2,13 +2,18 @@
 
 export function AnnouncementTicker() {
   return (
-    <div className="bg-primary text-white py-2 overflow-hidden relative h-10 flex items-center">
-      <div className="animate-ticker whitespace-nowrap absolute">
-        <span className="mx-10 uppercase tracking-widest text-[10px] font-bold">✨ Free Delivery Inside Dhaka on Orders Over Tk 2000 ✨</span>
-        <span className="mx-10 uppercase tracking-widest text-[10px] font-bold">✨ New Arrivals: Premium Silk Collection Now Live ✨</span>
-        <span className="mx-10 uppercase tracking-widest text-[10px] font-bold">✨ 10% Discount for First-Time Shoppers ✨</span>
-        <span className="mx-10 uppercase tracking-widest text-[10px] font-bold">✨ Free Delivery Inside Dhaka on Orders Over Tk 2000 ✨</span>
-        <span className="mx-10 uppercase tracking-widest text-[10px] font-bold">✨ New Arrivals: Premium Silk Collection Now Live ✨</span>
+    <div className="bg-primary text-white py-2 overflow-hidden whitespace-nowrap border-b border-primary/20">
+      <div className="animate-ticker inline-block">
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">Premium Quality Guaranteed</span>
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">Secure Cash on Delivery Nationwide</span>
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">Easy 7-Day Exchange Policy</span>
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">New Arrival: Summer Collection Live</span>
+      </div>
+      <div className="animate-ticker inline-block">
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">Premium Quality Guaranteed</span>
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">Secure Cash on Delivery Nationwide</span>
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">Easy 7-Day Exchange Policy</span>
+        <span className="mx-12 text-[10px] md:text-xs font-bold uppercase tracking-[0.3em]">New Arrival: Summer Collection Live</span>
       </div>
     </div>
   );
