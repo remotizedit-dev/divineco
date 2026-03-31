@@ -15,8 +15,6 @@ import {
   increment, 
   writeBatch,
   serverTimestamp,
-  CollectionReference,
-  DocumentData
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -51,6 +49,7 @@ export async function getProducts(options: {
   }
 
   if (options.isNewArrival) {
+    // Correctly query products that contain "New Arrival" in the tags array
     q = query(collection(db, "products"), where("tags", "array-contains", "New Arrival"), orderBy("createdAt", "desc"));
   }
 
@@ -149,8 +148,8 @@ export async function getDashboardStats() {
   const snapshot = await getDocs(collection(db, "orders"));
   const orders = snapshot.docs.map(d => d.data());
   
-  const totalSales = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + curr.total, 0);
-  const totalProfit = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + (curr.total - (curr.cost || 0)), 0);
+  const totalSales = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + (curr.total || 0), 0);
+  const totalProfit = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + ((curr.total || 0) - (curr.cost || 0)), 0);
   
   return {
     totalSales,

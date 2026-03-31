@@ -178,6 +178,30 @@ export default function ProductsPage() {
 
     if (editingProduct) {
       updateDocumentNonBlocking(doc(firestore, "products", editingProduct.id), productData);
+      
+      // Update variants (simplified for MVP: overwrite existing or just keep as is)
+      const variantsCol = collection(firestore, "products", editingProduct.id, "productVariants");
+      for (const variant of variants) {
+        if (variant.id) {
+           updateDocumentNonBlocking(doc(variantsCol, variant.id), {
+              color: variant.color || "Default",
+              size: variant.size || "One Size",
+              stockQuantity: Number(variant.stock),
+              updatedAt: serverTimestamp(),
+           });
+        } else if (variant.size || variant.color) {
+           addDocumentNonBlocking(variantsCol, {
+              productId: editingProduct.id,
+              color: variant.color || "Default",
+              size: variant.size || "One Size",
+              sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
+              stockQuantity: Number(variant.stock),
+              variantSpecificImageUrls: [thumbnailUrl],
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+           });
+        }
+      }
       toast({ title: "Product Updated", description: "The changes are being saved." });
     } else {
       const newProductData = {
@@ -447,7 +471,6 @@ export default function ProductsPage() {
             </DialogContent>
           </Dialog>
 
-          {/* View Dialog */}
           <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
