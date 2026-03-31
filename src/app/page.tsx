@@ -6,30 +6,40 @@ import { AnnouncementTicker } from "@/components/public/AnnouncementTicker";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { Button } from "@/components/ui/button";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { getProducts, getCategories } from "@/lib/api";
 import { ProductCard } from "@/components/public/ProductCard";
+import { useFirestore } from "@/firebase";
+import { collection, query, getDocs, limit as firestoreLimit, orderBy } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 
 export default function Home() {
+  const [banners, setBanners] = useState<any[]>([]);
   const [flashSaleProducts, setFlashSaleProducts] = useState<any[]>([]);
   const [newArrivals, setNewArrivals] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const firestore = useFirestore();
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [flash, arrivals, cats] = await Promise.all([
+        // Fetch banners from Firestore
+        const bannersSnap = await getDocs(query(collection(firestore, "homepageBanners"), orderBy("displayOrder", "asc")));
+        const fetchedBanners = bannersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setBanners(fetchedBanners);
+
+        const [flash, arrivals, all] = await Promise.all([
           getProducts({ isFlashSale: true, limit: 4 }),
-          getProducts({ isNewArrival: true, limit: 8 }),
-          getCategories()
+          getProducts({ isNewArrival: true, limit: 8 }), // 2 rows of 4
+          getProducts({ limit: 12 }) // Initial load for "All Products"
         ]);
+        
         setFlashSaleProducts(flash || []);
         setNewArrivals(arrivals || []);
-        setCategories(cats || []);
+        setAllProducts(all || []);
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
       } finally {
@@ -37,19 +47,30 @@ export default function Home() {
       }
     }
     fetchData();
-  }, []);
+  }, [firestore]);
+
+  const loadMoreProducts = async () => {
+    setIsLoadingMore(true);
+    try {
+      // In a real app, we'd use startAfter(lastDoc) for pagination.
+      // For this prototype, we'll just fetch more items.
+      const more = await getProducts({ limit: 24 });
+      setAllProducts(more);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground animate-pulse">Loading boutique experience...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse font-headline italic">Divine Boutique...</p>
+        </div>
       </div>
     );
   }
-
-  const heroImages = PlaceHolderImages && PlaceHolderImages.length >= 2 
-    ? [PlaceHolderImages[0], PlaceHolderImages[1]] 
-    : PlaceHolderImages && PlaceHolderImages.length > 0 ? [PlaceHolderImages[0]] : [];
 
   return (
     <main className="flex flex-col">
@@ -58,34 +79,33 @@ export default function Home() {
       
       {/* Hero Section */}
       <section className="relative h-[60vh] md:h-[80vh] w-full overflow-hidden">
-        {heroImages.length > 0 ? (
+        {banners.length > 0 ? (
           <Carousel className="w-full h-full" opts={{ loop: true }}>
             <CarouselContent className="h-full ml-0">
-              {heroImages.map((image, index) => (
-                <CarouselItem key={index} className="relative w-full h-full pl-0">
+              {banners.map((banner, index) => (
+                <CarouselItem key={banner.id} className="relative w-full h-full pl-0">
                   <Image 
-                    src={image.imageUrl} 
-                    alt={image.description} 
+                    src={banner.imageUrl} 
+                    alt={banner.title} 
                     fill 
                     className="object-cover"
                     priority={index === 0}
-                    data-ai-hint={image.imageHint}
                   />
-                  <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center text-white text-center p-4">
-                    <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg">
-                      {index === 0 ? "Summer Radiance" : "Timeless Elegance"}
+                  <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white text-center p-4">
+                    <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg max-w-4xl">
+                      {banner.title}
                     </h1>
-                    <p className="text-lg md:text-xl mb-8 max-w-xl opacity-90">
-                      Discover our handpicked premium collection designed for the modern woman.
+                    <p className="text-lg md:text-xl mb-8 max-w-xl opacity-90 font-light">
+                      {banner.description}
                     </p>
-                    <Button size="lg" className="rounded-full px-10 h-14 text-lg" asChild>
-                      <Link href="/products">Shop Collection</Link>
+                    <Button size="lg" className="rounded-full px-10 h-14 text-lg shadow-xl hover:scale-105 transition-transform" asChild>
+                      <Link href={banner.targetUrl || "/products"}>Shop the Collection</Link>
                     </Button>
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
-            {heroImages.length > 1 && (
+            {banners.length > 1 && (
               <>
                 <CarouselPrevious className="left-4 bg-white/50 border-none hover:bg-white" />
                 <CarouselNext className="right-4 bg-white/50 border-none hover:bg-white" />
@@ -93,55 +113,43 @@ export default function Home() {
             )}
           </Carousel>
         ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <p className="text-muted-foreground">Premium Boutique Experience</p>
+          <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-12 text-center">
+            <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4">Divine Elegance</h1>
+            <p className="text-muted-foreground max-w-md">Your premium boutique experience is loading. Visit the admin panel to customize your hero banners.</p>
           </div>
         )}
       </section>
 
-      {/* Categories Grid */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="text-3xl font-headline font-bold">Shop by Category</h2>
-          <Link href="/products" className="text-primary font-medium flex items-center gap-1 hover:underline">
-            View All Products <ChevronRight className="w-4 h-4" />
-          </Link>
+      {/* New Arrivals Section */}
+      <section id="new-arrivals" className="container mx-auto px-4 py-20 scroll-mt-20">
+        <div className="flex flex-col items-center mb-12">
+          <h2 className="text-4xl font-headline font-bold mb-2">New Arrivals</h2>
+          <div className="w-20 h-1 bg-primary rounded-full"></div>
+          <p className="text-muted-foreground mt-4 italic">Fresh styles curated just for you</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {categories.slice(0, 4).map((category: any, i) => (
-            <Link 
-              key={category.id} 
-              href={`/category/${category.slug}`}
-              className="group relative h-64 rounded-xl overflow-hidden shadow-sm"
-            >
-              <Image 
-                src={category.image || `https://picsum.photos/seed/cat${i}/400/400`} 
-                alt={category.name} 
-                fill 
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
-                <p className="text-white font-headline text-xl font-bold">{category.name}</p>
-              </div>
-            </Link>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+          {newArrivals.map((product: any) => (
+            <ProductCard key={product.id} product={product} />
           ))}
-          {categories.length === 0 && Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-64 rounded-xl bg-muted animate-pulse" />
-          ))}
+          {newArrivals.length === 0 && (
+             <div className="col-span-full py-20 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
+                No new arrivals at the moment.
+             </div>
+          )}
         </div>
       </section>
 
       {/* Flash Sale Section */}
       {flashSaleProducts.length > 0 && (
-        <section className="bg-secondary/20 py-16">
+        <section className="bg-primary/5 py-20">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-              <div className="flex items-center gap-6">
-                <h2 className="text-3xl font-headline font-bold text-primary">Flash Sale</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+              <div className="flex flex-wrap items-center gap-6">
+                <h2 className="text-4xl font-headline font-bold text-primary">Flash Sale</h2>
                 <CountdownTimer targetDate={new Date(Date.now() + 86400000)} />
               </div>
-              <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white" asChild>
-                <Link href="/products?sale=true">View All Offers</Link>
+              <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white rounded-full px-8" asChild>
+                <Link href="/products?sale=true">View Limited Offers</Link>
               </Button>
             </div>
             
@@ -154,18 +162,29 @@ export default function Home() {
         </section>
       )}
 
-      {/* New Arrivals Section */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-headline font-bold mb-10 text-center">New Arrivals</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {newArrivals.map((product: any) => (
+      {/* All Products Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="flex flex-col items-center mb-12">
+          <h2 className="text-4xl font-headline font-bold mb-2">Our Full Collection</h2>
+          <div className="w-20 h-1 bg-primary rounded-full"></div>
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
+          {allProducts.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
-          {newArrivals.length === 0 && !isLoading && (
-             <div className="col-span-full py-20 text-center text-muted-foreground">
-                No new arrivals at the moment.
-             </div>
-          )}
+        </div>
+
+        <div className="mt-16 flex justify-center">
+          <Button 
+            size="lg" 
+            variant="outline" 
+            className="rounded-full px-12 h-14 text-lg border-primary text-primary hover:bg-primary hover:text-white transition-all"
+            onClick={loadMoreProducts}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : "Discover More"}
+          </Button>
         </div>
       </section>
       
@@ -176,39 +195,58 @@ export default function Home() {
 
 function Footer() {
   return (
-    <footer className="bg-muted py-16 mt-20">
+    <footer className="bg-white py-20 mt-20 border-t">
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
-        <div className="col-span-1 md:col-span-1">
-          <h3 className="font-headline text-2xl font-bold text-primary mb-6">Divine.Co</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Crafting elegance and premium boutique experiences for the discerning modern woman since 2023.
+        <div className="col-span-1">
+          <h3 className="font-headline text-3xl font-bold text-primary mb-6">Divine.Co</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+            Experience the finest in premium boutique fashion. We curate elegance for the discerning modern woman.
           </p>
+          <div className="flex gap-4 mt-6">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer">
+              <span className="sr-only">Facebook</span>
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3V2z" /></svg>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer">
+              <span className="sr-only">Instagram</span>
+              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2c1.66 0 3 1.34 3 3v10c0 1.66-1.34 3-3 3H7c-1.66 0-3-1.34-3-3V7c0-1.66 1.34-3 3-3h10zM12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm4.5-2a.75.75 0 100 1.5.75.75 0 000-1.5z" /></svg>
+            </div>
+          </div>
         </div>
         <div>
-          <h4 className="font-bold mb-6">Quick Links</h4>
+          <h4 className="font-bold mb-6 text-sm uppercase tracking-wider">Navigation</h4>
           <ul className="space-y-3 text-sm text-muted-foreground">
-            <li><Link href="/products" className="hover:text-primary">Our Collections</Link></li>
-            <li><Link href="/control-panel" className="hover:text-primary">Admin Panel</Link></li>
+            <li><Link href="/products" className="hover:text-primary transition-colors">Our Collections</Link></li>
+            <li><Link href="/#new-arrivals" className="hover:text-primary transition-colors">New Arrivals</Link></li>
+            <li><Link href="/cart" className="hover:text-primary transition-colors">Shopping Bag</Link></li>
+            <li><Link href="/control-panel" className="hover:text-primary transition-colors">Admin Portal</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="font-bold mb-6">Customer Service</h4>
+          <h4 className="font-bold mb-6 text-sm uppercase tracking-wider">Support</h4>
           <ul className="space-y-3 text-sm text-muted-foreground">
-            <li><Link href="#" className="hover:text-primary">Track Order</Link></li>
-            <li><Link href="#" className="hover:text-primary">FAQs</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Shipping Policy</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Returns & Exchanges</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Track Your Order</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="font-bold mb-6">Newsletter</h4>
-          <p className="text-sm text-muted-foreground mb-4">Subscribe to receive updates and exclusive offers.</p>
-          <div className="flex gap-2">
-            <input type="email" placeholder="Email address" className="bg-white border rounded-md px-4 py-2 text-sm flex-1 outline-none focus:ring-1 focus:ring-primary" />
-            <Button size="sm">Join</Button>
+          <h4 className="font-bold mb-6 text-sm uppercase tracking-wider">Join Divine.Co</h4>
+          <p className="text-sm text-muted-foreground mb-4">Be the first to hear about new collections and exclusive offers.</p>
+          <div className="flex flex-col gap-2">
+            <input type="email" placeholder="Your email address" className="bg-muted/50 border rounded-md px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary transition-all" />
+            <Button className="w-full">Subscribe</Button>
           </div>
         </div>
       </div>
-      <div className="container mx-auto px-4 mt-16 pt-8 border-t text-center text-xs text-muted-foreground">
-        © 2024 Divine.Co Boutique. All rights reserved.
+      <div className="container mx-auto px-4 mt-20 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] text-muted-foreground uppercase tracking-widest">
+        <span>© 2024 Divine.Co Boutique. All rights reserved.</span>
+        <div className="flex gap-6">
+          <span>Secure Payments</span>
+          <span>Fast Shipping</span>
+          <span>Handmade Quality</span>
+        </div>
       </div>
     </footer>
   );

@@ -2,75 +2,135 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingBag, Search, Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ShoppingBag, Menu, Search, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getCategories } from "@/lib/api";
 import { useCartStore } from "@/lib/store";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { getCategories } from "@/lib/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
-  const cartItems = useCartStore(state => state.items);
-  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const pathname = usePathname();
+  const cartItemsCount = useCartStore((state) => state.items.reduce((acc, item) => acc + item.quantity, 0));
 
   useEffect(() => {
     getCategories().then(setCategories);
   }, []);
 
+  const navLinks = [
+    { name: "Home", href: "/" },
+    { name: "New Arrivals", href: "/#new-arrivals" },
+    { name: "All Products", href: "/products" },
+  ];
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="font-headline text-2xl font-bold text-primary">
+    <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link href="/" className="font-headline text-3xl font-bold text-primary tracking-tighter">
             Divine.Co
           </Link>
-          
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="/products" className="hover:text-primary transition-colors">All Products</Link>
-            {categories.slice(0, 4).map((cat) => (
-              <Link key={cat.id} href={`/category/${cat.slug}`} className="hover:text-primary transition-colors">
-                {cat.name}
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  pathname === link.href ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {link.name}
               </Link>
             ))}
-          </nav>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Search className="w-5 h-5" />
-          </Button>
-          
-          <Button variant="ghost" size="icon" className="relative">
-            <ShoppingBag className="w-5 h-5" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
-            )}
-          </Button>
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <nav className="flex flex-col gap-4 mt-8">
-                <Link href="/" className="text-lg font-bold">Home</Link>
-                <Link href="/products" className="text-lg font-bold">All Products</Link>
-                <div className="h-px bg-border my-2" />
-                <p className="text-xs uppercase text-muted-foreground font-bold tracking-widest">Categories</p>
+            {/* Categories Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-primary transition-colors outline-none">
+                  Categories <ChevronDown className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
                 {categories.map((cat) => (
-                  <Link key={cat.id} href={`/category/${cat.slug}`} className="text-lg">
-                    {cat.name}
-                  </Link>
+                  <DropdownMenuItem key={cat.id} asChild>
+                    <Link href={`/category/${cat.slug}`} className="w-full cursor-pointer">
+                      {cat.name}
+                    </Link>
+                  </DropdownMenuItem>
                 ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="hidden sm:flex">
+              <Search className="w-5 h-5" />
+            </Button>
+            
+            <Link href="/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingBag className="w-5 h-5" />
+                {cartItemsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {cartItemsCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </Button>
+          </div>
         </div>
       </div>
-    </header>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-t p-4 space-y-4">
+          {navLinks.map((link) => (
+            <Link
+              key={link.name}
+              href={link.href}
+              className="block text-lg font-medium py-2 border-b border-muted last:border-0"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {link.name}
+            </Link>
+          ))}
+          <div className="pt-2">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">Shop by Category</p>
+            <div className="grid grid-cols-2 gap-2">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/category/${cat.slug}`}
+                  className="text-sm py-2 px-3 bg-muted rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 }
