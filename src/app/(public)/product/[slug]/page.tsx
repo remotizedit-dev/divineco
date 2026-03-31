@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -69,7 +68,7 @@ export default function ProductDetailPage() {
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
         </div>
       </div>
     );
@@ -79,8 +78,8 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Product not found.</p>
+        <div className="flex-1 flex items-center justify-center p-8 text-center">
+          <p className="text-muted-foreground font-headline text-xl">Product not found.</p>
         </div>
       </div>
     );
@@ -90,20 +89,21 @@ export default function ProductDetailPage() {
   const showTimer = product.isFlashSale && product.flashSaleEndTime;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white">
       <AnnouncementTicker />
       <Navbar />
       
-      <main className="container mx-auto px-4 py-12 flex-1">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <main className="container mx-auto px-4 py-16 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
           {/* Image Gallery */}
-          <div className="space-y-4">
-            <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border bg-muted shadow-lg">
+          <div className="space-y-6">
+            <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-primary/5 bg-muted shadow-2xl">
               <Image 
                 src={activeImage} 
                 alt={product.name} 
                 fill 
                 className="object-cover"
+                priority
               />
             </div>
             <div className="grid grid-cols-4 gap-4">
@@ -111,7 +111,7 @@ export default function ProductDetailPage() {
                 <button 
                   key={i} 
                   onClick={() => setActiveImage(url)}
-                  className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${activeImage === url ? 'border-primary shadow-md' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                  className={`relative aspect-[3/4] rounded-2xl overflow-hidden border-2 transition-all ${activeImage === url ? 'border-primary shadow-lg scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
                 >
                   <Image src={url} alt={`${product.name} ${i}`} fill className="object-cover" />
                 </button>
@@ -120,62 +120,62 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Product Info */}
-          <div className="flex flex-col">
-            <div className="mb-6 space-y-4">
+          <div className="flex flex-col py-4">
+            <div className="mb-10 space-y-6">
               <div className="flex flex-wrap gap-2">
                 {product.tags?.map((tag: string, idx: number) => (
-                  <Badge key={idx} variant="secondary" className="uppercase text-[10px] font-bold tracking-widest px-3 py-1">
+                  <Badge key={idx} variant="secondary" className="uppercase text-[10px] font-bold tracking-[0.2em] px-4 py-1.5 bg-muted/50 border-none">
                     {tag}
                   </Badge>
                 ))}
                 {hasDiscount && (
-                  <Badge className="bg-primary text-white font-bold uppercase tracking-widest text-[10px]">
-                    Flash Sale
+                  <Badge className="bg-primary text-white font-bold uppercase tracking-[0.2em] text-[10px] px-4 py-1.5 border-none shadow-md">
+                    Flash Offer
                   </Badge>
                 )}
               </div>
               
-              <h1 className="font-headline text-4xl md:text-5xl font-bold leading-tight">{product.name}</h1>
+              <h1 className="font-headline text-5xl md:text-6xl font-bold leading-tight tracking-tight">{product.name}</h1>
               
-              <div className="flex items-baseline gap-4">
-                <p className="text-4xl font-bold text-primary">Tk {product.salesPrice}</p>
+              <div className="flex items-baseline gap-6">
+                <p className="text-5xl font-bold text-primary">Tk {product.salesPrice}</p>
                 {hasDiscount && (
-                  <p className="text-xl text-muted-foreground line-through opacity-50">Tk {product.compareAtPrice}</p>
+                  <p className="text-2xl text-muted-foreground line-through opacity-40 font-medium">Tk {product.compareAtPrice}</p>
                 )}
               </div>
 
               {showTimer && (
-                <div className="flex items-center gap-4 bg-primary/5 border border-primary/10 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Clock className="w-5 h-5" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Offers Ends In:</span>
+                <div className="flex items-center gap-6 bg-primary/5 border border-primary/10 rounded-3xl p-6 shadow-sm">
+                  <div className="flex items-center gap-3 text-primary">
+                    <Clock className="w-6 h-6" />
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em]">Offer Ends In:</span>
                   </div>
-                  <CountdownTimer targetDate={new Date(product.flashSaleEndTime)} className="h-10 text-lg px-4" />
+                  <CountdownTimer targetDate={new Date(product.flashSaleEndTime)} className="h-12 text-2xl px-6 rounded-2xl shadow-inner bg-white border-none" />
                 </div>
               )}
             </div>
 
-            <div className="prose prose-sm text-muted-foreground mb-10 leading-relaxed text-lg italic">
+            <div className="prose prose-sm text-muted-foreground mb-12 leading-relaxed text-xl italic font-light max-w-xl">
               <p>{product.description}</p>
             </div>
 
             {/* Variants */}
             {variants.length > 0 && (
-              <div className="space-y-6 mb-10">
+              <div className="space-y-8 mb-12">
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4 block">
-                    Available Variants
+                  <label className="text-[11px] font-bold uppercase tracking-[0.3em] text-muted-foreground mb-6 block">
+                    Select Your Size & Color
                   </label>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-4">
                     {variants.map((v) => (
                       <button
                         key={v.id}
                         onClick={() => setSelectedVariant(v)}
                         disabled={v.stockQuantity === 0}
-                        className={`px-6 py-3 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm ${
+                        className={`px-8 py-4 rounded-2xl border-2 text-sm font-bold transition-all shadow-sm ${
                           selectedVariant?.id === v.id 
-                            ? 'border-primary bg-primary text-white scale-105 shadow-primary/20' 
-                            : 'border-input hover:border-primary/50'
+                            ? 'border-primary bg-primary text-white scale-105 shadow-xl shadow-primary/20' 
+                            : 'border-muted bg-muted/30 hover:border-primary/50'
                         } ${v.stockQuantity === 0 ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
                       >
                         {v.color} - {v.size}
@@ -186,39 +186,39 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Button size="lg" className="flex-1 h-16 rounded-2xl text-xl gap-3 shadow-xl shadow-primary/20" onClick={handleAddToCart}>
-                <ShoppingCart className="w-6 h-6" /> Order Now
+            <div className="flex flex-col sm:flex-row gap-6 mb-16">
+              <Button size="lg" className="flex-1 h-20 rounded-3xl text-2xl gap-4 shadow-2xl shadow-primary/20 transition-all active:scale-95" onClick={handleAddToCart}>
+                <ShoppingCart className="w-7 h-7" /> Order Now
               </Button>
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-10 border-t border-dashed">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center shadow-inner">
-                  <Truck className="w-6 h-6 text-primary" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 pt-12 border-t border-dashed border-muted">
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-4">
+                <div className="w-16 h-16 rounded-[1.25rem] bg-muted/50 flex items-center justify-center shadow-inner group">
+                  <Truck className="w-8 h-8 text-primary transition-transform group-hover:-translate-y-1" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm uppercase tracking-wider">Fast Delivery</p>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">24-48 Hours</p>
+                  <p className="font-bold text-xs uppercase tracking-widest">Fast Delivery</p>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-1">24-48 Hours</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center shadow-inner">
-                  <ShieldCheck className="w-6 h-6 text-primary" />
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-4">
+                <div className="w-16 h-16 rounded-[1.25rem] bg-muted/50 flex items-center justify-center shadow-inner group">
+                  <ShieldCheck className="w-8 h-8 text-primary transition-transform group-hover:-translate-y-1" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm uppercase tracking-wider">Secure COD</p>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Pay on Receive</p>
+                  <p className="font-bold text-xs uppercase tracking-widest">Secure COD</p>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-1">Pay on Receive</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center shadow-inner">
-                  <RefreshCw className="w-6 h-6 text-primary" />
+              <div className="flex flex-col items-center sm:items-start text-center sm:text-left gap-4">
+                <div className="w-16 h-16 rounded-[1.25rem] bg-muted/50 flex items-center justify-center shadow-inner group">
+                  <RefreshCw className="w-8 h-8 text-primary transition-transform group-hover:-translate-y-1" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm uppercase tracking-wider">7-Day Return</p>
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Easy Exchanges</p>
+                  <p className="font-bold text-xs uppercase tracking-widest">Easy Returns</p>
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-1">7-Day Guarantee</p>
                 </div>
               </div>
             </div>
@@ -229,7 +229,10 @@ export default function ProductDetailPage() {
       <AddToCartModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        productName={product.name} 
+        productName={product.name}
+        productPrice={product.salesPrice}
+        productImage={activeImage}
+        quantity={1}
       />
     </div>
   );

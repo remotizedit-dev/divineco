@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from "react";
@@ -65,7 +64,7 @@ export default function Home() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse font-headline italic">Divine Shoe Store...</p>
+          <p className="text-muted-foreground animate-pulse font-headline italic text-lg">Divine Shoe Store...</p>
         </div>
       </div>
     );
@@ -76,7 +75,7 @@ export default function Home() {
       <AnnouncementTicker />
       <Navbar />
       
-      <section className="relative h-[60vh] md:h-[80vh] w-full overflow-hidden">
+      <section className="relative h-[65vh] md:h-[85vh] w-full overflow-hidden">
         {banners.length > 0 ? (
           <Carousel className="w-full h-full" opts={{ loop: true }}>
             <CarouselContent className="h-full ml-0">
@@ -90,13 +89,13 @@ export default function Home() {
                     priority={index === 0}
                   />
                   <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-center p-4">
-                    <h1 className="font-headline text-5xl md:text-8xl font-bold mb-6 drop-shadow-2xl max-w-4xl tracking-tight">
+                    <h1 className="font-headline text-5xl md:text-8xl font-bold mb-6 drop-shadow-2xl max-w-4xl tracking-tight leading-tight">
                       {banner.title}
                     </h1>
-                    <p className="text-lg md:text-2xl mb-10 max-w-xl opacity-90 font-light italic">
+                    <p className="text-lg md:text-2xl mb-12 max-w-xl opacity-95 font-light italic leading-relaxed">
                       {banner.description}
                     </p>
-                    <Button size="lg" className="rounded-full px-12 h-16 text-xl shadow-2xl hover:scale-105 transition-transform" asChild>
+                    <Button size="lg" className="rounded-full px-14 h-16 text-xl shadow-2xl hover:scale-105 transition-all bg-white text-primary hover:bg-white/90" asChild>
                       <Link href={banner.targetUrl || "/products"}>Discover Collection</Link>
                     </Button>
                   </div>
@@ -105,24 +104,24 @@ export default function Home() {
             </CarouselContent>
             {banners.length > 1 && (
               <>
-                <CarouselPrevious className="left-4 bg-white/20 border-none hover:bg-white/40 text-white" />
-                <CarouselNext className="right-4 bg-white/20 border-none hover:bg-white/40 text-white" />
+                <CarouselPrevious className="left-8 bg-white/20 border-none hover:bg-white/40 text-white w-12 h-12" />
+                <CarouselNext className="right-8 bg-white/20 border-none hover:bg-white/40 text-white w-12 h-12" />
               </>
             )}
           </Carousel>
         ) : (
           <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-12 text-center">
             <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4">Divine Shoe Store</h1>
-            <p className="text-muted-foreground max-w-md">Quality steps for a premium lifestyle. Manage your banners in the admin panel.</p>
+            <p className="text-muted-foreground max-w-md">Quality steps for a premium lifestyle.</p>
           </div>
         )}
       </section>
 
       <section id="new-arrivals" className="container mx-auto px-4 py-24 scroll-mt-20">
         <div className="flex flex-col items-center mb-16 text-center">
-          <Badge variant="outline" className="mb-4 border-primary text-primary px-4 py-1 text-[10px] uppercase tracking-widest font-bold">New Arrivals</Badge>
-          <h2 className="text-4xl md:text-5xl font-headline font-bold mb-4">The Latest Steps</h2>
-          <div className="w-24 h-1 bg-primary rounded-full"></div>
+          <Badge variant="outline" className="mb-4 border-primary text-primary px-5 py-1 text-[10px] uppercase tracking-[0.2em] font-bold">New Arrivals</Badge>
+          <h2 className="text-4xl md:text-5xl font-headline font-bold mb-4 tracking-tight">The Latest Steps</h2>
+          <div className="w-24 h-1.5 bg-primary rounded-full"></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10">
           {newArrivals.map((product: any) => (
@@ -137,15 +136,15 @@ export default function Home() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
               <div className="flex flex-wrap items-center gap-8">
                 <div>
-                  <h2 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-2">Flash Sale</h2>
-                  <p className="text-muted-foreground italic text-sm">Limited time premium offers</p>
+                  <h2 className="text-4xl md:text-5xl font-headline font-bold text-primary mb-2 tracking-tight">Flash Sale</h2>
+                  <p className="text-muted-foreground italic text-sm">Limited time premium footwear offers</p>
                 </div>
                 <CountdownTimer 
                   targetDate={new Date(Date.now() + 86400000)} 
-                  className="h-14 text-2xl px-6 rounded-2xl shadow-lg shadow-primary/10 border-primary/20"
+                  className="h-16 text-3xl px-8 rounded-3xl shadow-xl shadow-primary/10 border-primary/20 bg-white"
                 />
               </div>
-              <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white rounded-full px-10 h-12" asChild>
+              <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white rounded-full px-12 h-14 font-bold" asChild>
                 <Link href="/products?sale=true">View All Offers</Link>
               </Button>
             </div>
@@ -161,9 +160,9 @@ export default function Home() {
 
       <section className="container mx-auto px-4 py-24">
         <div className="flex flex-col items-center mb-16 text-center">
-          <Badge variant="outline" className="mb-4 border-primary text-primary px-4 py-1 text-[10px] uppercase tracking-widest font-bold">Collections</Badge>
-          <h2 className="text-4xl md:text-5xl font-headline font-bold mb-4">The Complete Gallery</h2>
-          <div className="w-24 h-1 bg-primary rounded-full"></div>
+          <Badge variant="outline" className="mb-4 border-primary text-primary px-5 py-1 text-[10px] uppercase tracking-[0.2em] font-bold">Collections</Badge>
+          <h2 className="text-4xl md:text-5xl font-headline font-bold mb-4 tracking-tight">The Complete Gallery</h2>
+          <div className="w-24 h-1.5 bg-primary rounded-full"></div>
         </div>
         
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-10">
@@ -176,7 +175,7 @@ export default function Home() {
           <Button 
             size="lg" 
             variant="outline" 
-            className="rounded-full px-16 h-16 text-xl border-primary text-primary hover:bg-primary hover:text-white transition-all shadow-xl shadow-primary/5"
+            className="rounded-full px-20 h-16 text-xl border-primary text-primary hover:bg-primary hover:text-white transition-all shadow-xl shadow-primary/5 font-bold"
             onClick={loadMoreProducts}
             disabled={isLoadingMore}
           >
@@ -197,8 +196,8 @@ function Footer() {
     <footer className="bg-white py-24 mt-20 border-t">
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-16">
         <div className="col-span-1">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-primary/10 shadow-md">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-primary/10 shadow-md">
               <Image src={logoUrl} alt="Divine.Co Logo" fill className="object-cover" />
             </div>
             <h3 className="font-headline text-3xl font-bold text-primary">Divine.Co</h3>
@@ -207,10 +206,10 @@ function Footer() {
             Premium Shoe Store for the discerning modern lifestyle. We provide comfort and elegance in every step you take.
           </p>
           <div className="flex gap-4">
-            <Link href="#" className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+            <Link href="#" className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm">
               <Facebook className="w-5 h-5" />
             </Link>
-            <Link href="#" className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-all">
+            <Link href="#" className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm">
               <Instagram className="w-5 h-5" />
             </Link>
           </div>
@@ -222,7 +221,6 @@ function Footer() {
             <li><Link href="/products" className="hover:text-primary transition-colors">Complete Collection</Link></li>
             <li><Link href="/#new-arrivals" className="hover:text-primary transition-colors">Latest Releases</Link></li>
             <li><Link href="/checkout" className="hover:text-primary transition-colors">Your Shopping Bag</Link></li>
-            <li><Link href="/control-panel" className="hover:text-primary transition-colors">Admin Portal</Link></li>
           </ul>
         </div>
 
@@ -242,9 +240,9 @@ function Footer() {
             <input 
               type="email" 
               placeholder="Your professional email" 
-              className="bg-muted/30 border-none rounded-xl px-5 py-3 text-sm outline-none focus:ring-1 focus:ring-primary transition-all shadow-inner" 
+              className="bg-muted/30 border-none rounded-2xl px-5 py-4 text-sm outline-none focus:ring-1 focus:ring-primary transition-all shadow-inner" 
             />
-            <Button className="w-full h-12 rounded-xl font-bold uppercase tracking-widest text-[10px]">Join the Inner Circle</Button>
+            <Button className="w-full h-14 rounded-2xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-primary/10">Join the Inner Circle</Button>
           </div>
         </div>
       </div>
