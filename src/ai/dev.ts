@@ -1,4 +1,2 @@
-import { config } from 'dotenv';
-config();
 
-import '@/ai/flows/generate-product-marketing-copy-flow.ts';
+// AI development server scripts have been removed.

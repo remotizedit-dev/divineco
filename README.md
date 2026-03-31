@@ -1,3 +1,4 @@
+
 # Divine.Co Premium Shoe Store
 
 This is a premium e-commerce platform built with Next.js 15, Tailwind CSS, ShadCN UI, and Firebase.
@@ -14,22 +15,15 @@ Ensure your code is pushed to a GitHub, GitLab, or Bitbucket repository.
 2. Click **"Add New"** > **"Project"**.
 3. Import your repository.
 
-### 3. Configure Environment Variables
-In the Vercel project settings, under **Environment Variables**, add the following:
-
-| Key | Description |
-| :--- | :--- |
-| `GOOGLE_GENAI_API_KEY` | Your Google AI Studio API key (required for Genkit AI features). |
-
-*Note: Your Firebase public configuration is already included in `src/firebase/config.ts`, so client-side Firestore and Auth will work automatically.*
-
-### 4. Build Settings
+### 3. Build Settings
 Vercel should automatically detect Next.js. The default settings are:
 - **Build Command:** `npm run build`
 - **Output Directory:** `.next`
 - **Install Command:** `npm install`
 
-### 5. Deploy
+*Note: Your Firebase public configuration is already included in `src/firebase/config.ts`, so client-side Firestore and Auth will work automatically.*
+
+### 4. Deploy
 Click **"Deploy"**. Once finished, Vercel will provide you with a production URL.
 
 ## Local Development
@@ -46,4 +40,3 @@ The app will be available at `http://localhost:9002`.
 - `src/app/(public)`: Storefront pages (Home, Products, Checkout).
 - `src/app/control-panel`: Administrative dashboard for inventory and orders.
 - `src/firebase`: Firebase configuration and custom hooks for Firestore/Auth.
-- `src/ai`: Genkit AI flows for marketing copy generation.
