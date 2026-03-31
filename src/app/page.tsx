@@ -1,9 +1,10 @@
+
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navbar } from "@/components/public/Navbar";
 import { AnnouncementTicker } from "@/components/public/AnnouncementTicker";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/lib/api";
@@ -13,6 +14,7 @@ import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
 import { Loader2, Mail, Phone, MapPin, Instagram, Facebook } from "lucide-react";
+import Autoplay from "embla-carousel-autoplay";
 
 export default function Home() {
   const [banners, setBanners] = useState<any[]>([]);
@@ -22,6 +24,10 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const firestore = useFirestore();
+
+  const autoplay = useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: false })
+  );
 
   useEffect(() => {
     async function fetchData() {
@@ -79,7 +85,11 @@ export default function Home() {
       
       <section className="relative h-[65vh] md:h-[85vh] w-full overflow-hidden bg-muted/20">
         {banners.length > 0 ? (
-          <Carousel className="w-full h-full" opts={{ loop: true }}>
+          <Carousel 
+            className="w-full h-full" 
+            opts={{ loop: true }}
+            plugins={[autoplay.current]}
+          >
             <CarouselContent className="h-full ml-0">
               {banners.map((banner, index) => (
                 <CarouselItem key={banner.id} className="relative w-full h-full pl-0">
@@ -106,12 +116,6 @@ export default function Home() {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            {banners.length > 1 && (
-              <>
-                <CarouselPrevious className="left-8 bg-white/20 border-none hover:bg-white/40 text-white w-12 h-12" />
-                <CarouselNext className="right-8 bg-white/20 border-none hover:bg-white/40 text-white w-12 h-12" />
-              </>
-            )}
           </Carousel>
         ) : (
           <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-12 text-center">
