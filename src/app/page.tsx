@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from "react";
@@ -96,22 +95,28 @@ export default function Home() {
                   <div className="relative w-full h-full bg-black/5">
                     <Image 
                       src={banner.imageUrl} 
-                      alt={banner.title} 
+                      alt={banner.title || "Banner"} 
                       fill 
                       className="object-cover"
                       priority={index === 0}
                     />
-                    <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-center p-4">
-                      <h1 className="font-headline text-5xl md:text-8xl font-bold mb-6 drop-shadow-2xl max-w-4xl tracking-tight leading-tight">
-                        {banner.title}
-                      </h1>
-                      <p className="text-lg md:text-2xl mb-12 max-w-xl opacity-95 font-light italic leading-relaxed">
-                        {banner.description}
-                      </p>
-                      <Button size="lg" className="rounded-full px-14 h-16 text-xl shadow-2xl hover:scale-105 transition-all bg-white text-primary hover:bg-white/90" asChild>
-                        <Link href={banner.targetUrl || "/products"}>Discover Collection</Link>
-                      </Button>
-                    </div>
+                    {(banner.title || banner.description) && (
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-center p-4">
+                        {banner.title && (
+                          <h1 className="font-headline text-5xl md:text-8xl font-bold mb-6 drop-shadow-2xl max-w-4xl tracking-tight leading-tight">
+                            {banner.title}
+                          </h1>
+                        )}
+                        {banner.description && (
+                          <p className="text-lg md:text-2xl mb-12 max-w-xl opacity-95 font-light italic leading-relaxed">
+                            {banner.description}
+                          </p>
+                        )}
+                        <Button size="lg" className="rounded-full px-14 h-16 text-xl shadow-2xl hover:scale-105 transition-all bg-white text-primary hover:bg-white/90" asChild>
+                          <Link href={banner.targetUrl || "/products"}>Discover Collection</Link>
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CarouselItem>
               ))}

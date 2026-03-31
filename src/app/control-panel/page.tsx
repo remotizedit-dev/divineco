@@ -1,34 +1,36 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getDashboardStats } from "@/lib/api";
-import { DollarSign, ShoppingBag, Package, TrendingUp, AlertCircle } from "lucide-react";
-
-const mockSalesData = [
-  { day: 'Mon', sales: 4000 },
-  { day: 'Tue', sales: 3000 },
-  { day: 'Wed', sales: 5000 },
-  { day: 'Thu', sales: 2780 },
-  { day: 'Fri', sales: 6890 },
-  { day: 'Sat', sales: 8390 },
-  { day: 'Sun', sales: 4490 },
-];
+import { DollarSign, ShoppingBag, Package, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getDashboardStats().then(setStats);
+    getDashboardStats().then(data => {
+      setStats(data);
+      setIsLoading(false);
+    });
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const statCards = [
-    { title: "Total Sales", value: `Tk ${stats?.totalSales || 0}`, icon: DollarSign, color: "text-green-600" },
-    { title: "Total Profit", value: `Tk ${stats?.totalProfit || 0}`, icon: TrendingUp, color: "text-blue-600" },
+    { title: "Total Sales", value: `Tk ${stats?.totalSales?.toLocaleString() || 0}`, icon: DollarSign, color: "text-green-600" },
+    { title: "Stock Value", value: `Tk ${stats?.stockValue?.toLocaleString() || 0}`, icon: Package, color: "text-amber-600" },
     { title: "Total Orders", value: stats?.totalOrders || 0, icon: ShoppingBag, color: "text-primary" },
-    { title: "Stock Value", value: "Tk 45,000", icon: Package, color: "text-amber-600" },
+    { title: "Total Inventory", value: `${stats?.totalInventory || 0} Units`, icon: Package, color: "text-blue-600" },
     { title: "Cancelled", value: stats?.cancelledOrders || 0, icon: AlertCircle, color: "text-red-600" },
   ];
 
@@ -48,30 +50,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <Card className="border-none shadow-sm">
-        <CardHeader>
-          <CardTitle>Weekly Sales Overview</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[400px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={mockSalesData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-              <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
-              <Tooltip 
-                cursor={{ fill: 'hsl(var(--primary))', opacity: 0.1 }}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-              />
-              <Bar dataKey="sales" radius={[4, 4, 0, 0]}>
-                {mockSalesData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={index === 5 ? 'hsl(var(--primary))' : 'hsl(var(--secondary))'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="border-none shadow-sm">
           <CardHeader>
@@ -79,23 +57,29 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
+              {stats?.recentOrders?.map((order: any) => (
+                <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      C
+                      {order.customerName?.charAt(0) || 'C'}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Customer {i}</p>
-                      <p className="text-xs text-muted-foreground">#ORD-100{i}</p>
+                      <p className="text-sm font-medium">{order.customerName}</p>
+                      <p className="text-[10px] text-muted-foreground">{order.orderNumber || `#${order.id.substring(0, 6)}`}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">Tk 2,500</p>
-                    <p className="text-[10px] uppercase text-green-600 font-bold">Delivered</p>
+                    <p className="text-sm font-bold">Tk {order.total}</p>
+                    <p className={`text-[10px] uppercase font-bold ${
+                      order.status === 'Cancelled' ? 'text-red-600' : 
+                      order.status === 'Delivered' ? 'text-green-600' : 'text-amber-600'
+                    }`}>{order.status}</p>
                   </div>
                 </div>
               ))}
+              {!stats?.recentOrders?.length && (
+                <p className="text-center text-muted-foreground py-10 italic">No orders yet.</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -106,20 +90,25 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50/20">
+              {stats?.lowStockItems?.map((product: any) => (
+                <div key={product.id} className="flex items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50/20">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden">
-                      <img src={`https://picsum.photos/seed/prod${i}/100/100`} alt="Product" className="object-cover" />
+                    <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden relative">
+                      <img src={product.thumbnailUrl} alt={product.name} className="object-cover w-full h-full" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium">Lace Trim Dress</p>
-                      <p className="text-xs text-red-600 font-medium">Only 2 left in stock</p>
+                      <p className="text-sm font-medium truncate max-w-[150px]">{product.name}</p>
+                      <p className="text-xs text-red-600 font-medium">Only {product.stock || 0} left in stock</p>
                     </div>
                   </div>
-                  <button className="text-xs font-bold text-primary underline">Restock</button>
+                  <div className="text-right">
+                    <p className="text-sm font-bold">Tk {product.salesPrice}</p>
+                  </div>
                 </div>
               ))}
+              {!stats?.lowStockItems?.length && (
+                <p className="text-center text-green-600 py-10 italic">All stock levels are healthy.</p>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -44,10 +44,10 @@ export default function BannersPage() {
 
     const formData = new FormData(e.currentTarget);
     const bannerData = {
-      title: formData.get("title") as string,
-      description: formData.get("description") as string,
+      title: (formData.get("title") as string) || "",
+      description: (formData.get("description") as string) || "",
       imageUrl: formData.get("imageUrl") as string,
-      targetUrl: formData.get("targetUrl") as string,
+      targetUrl: (formData.get("targetUrl") as string) || "/products",
       displayOrder: editingBanner ? editingBanner.displayOrder : banners.length,
       isActive: true,
       updatedAt: serverTimestamp(),
@@ -99,11 +99,11 @@ export default function BannersPage() {
             </DialogHeader>
             <form onSubmit={handleSaveBanner} className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Headline</Label>
-                <Input id="title" name="title" defaultValue={editingBanner?.title} placeholder="e.g. Summer Radiance Collection" required />
+                <Label htmlFor="title">Headline (Optional)</Label>
+                <Input id="title" name="title" defaultValue={editingBanner?.title} placeholder="e.g. Summer Radiance Collection" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Sub-headline</Label>
+                <Label htmlFor="description">Sub-headline (Optional)</Label>
                 <Textarea id="description" name="description" defaultValue={editingBanner?.description} placeholder="Short engaging description..." />
               </div>
               <div className="space-y-2">
@@ -153,8 +153,8 @@ export default function BannersPage() {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-bold text-sm">{banner.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{banner.description}</p>
+                      <p className="font-bold text-sm">{banner.title || "No Headline"}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{banner.description || "No Description"}</p>
                     </div>
                   </TableCell>
                   <TableCell className="text-right space-x-2">

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -167,17 +166,38 @@ export async function validateCoupon(code: string, subtotal: number) {
 
 // --- Analytics API ---
 export async function getDashboardStats() {
-  const snapshot = await getDocs(collection(db, "orders"));
-  const orders = snapshot.docs.map(d => d.data());
+  const [orderSnapshot, productSnapshot] = await Promise.all([
+    getDocs(collection(db, "orders")),
+    getDocs(collection(db, "products"))
+  ]);
+
+  const orders = orderSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  const products = productSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
   
-  const totalSales = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + (curr.total || 0), 0);
+  const activeOrders = orders.filter((o: any) => o.status !== 'Cancelled');
+  const totalSales = activeOrders.reduce((acc, curr: any) => acc + (curr.total || 0), 0);
   const totalOrders = orders.length;
-  const cancelledOrders = orders.filter(o => o.status === 'Cancelled').length;
+  const cancelledOrders = orders.filter((o: any) => o.status === 'Cancelled').length;
+  
+  const stockValue = products.reduce((acc, curr: any) => acc + ((curr.stock || 0) * (curr.salesPrice || 0)), 0);
+  const totalInventory = products.reduce((acc, curr: any) => acc + (curr.stock || 0), 0);
+
+  const lowStockItems = products
+    .filter((p: any) => (p.stock || 0) < 10)
+    .sort((a: any, b: any) => (a.stock || 0) - (b.stock || 0))
+    .slice(0, 5);
+
+  const recentOrders = orders
+    .sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+    .slice(0, 5);
   
   return {
     totalSales,
-    totalProfit: 0, // Simplified for now
+    stockValue,
     totalOrders,
     cancelledOrders,
+    totalInventory,
+    lowStockItems,
+    recentOrders
   };
 }
