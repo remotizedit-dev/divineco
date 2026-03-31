@@ -24,6 +24,7 @@ import {
 import { Phone, MapPin, Package, Clock, MoreHorizontal, Eye, CheckCircle2, XCircle, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import Image from "next/image";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -80,7 +81,7 @@ export default function OrdersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Order ID</TableHead>
+                <TableHead>Order #</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Total</TableHead>
@@ -91,7 +92,7 @@ export default function OrdersPage() {
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell className="font-mono text-xs">#{order.id.substring(0, 8)}</TableCell>
+                  <TableCell className="font-bold text-primary">{order.orderNumber || `#${order.id.substring(0, 8)}`}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-bold">{order.customerName}</span>
@@ -99,7 +100,7 @@ export default function OrdersPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs">
-                    {order.createdAt ? format(order.createdAt.seconds * 1000, "MMM dd, yyyy HH:mm") : "N/A"}
+                    {order.createdAt ? format(order.createdAt.seconds * 1000, "MMM dd, yyyy HH:mm") : "Recently"}
                   </TableCell>
                   <TableCell className="font-bold">Tk {order.total}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
@@ -111,24 +112,24 @@ export default function OrdersPage() {
                             <Eye className="w-4 h-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-3xl">
                           <DialogHeader>
-                            <DialogTitle>Order Details #{order.id.substring(0, 8)}</DialogTitle>
+                            <DialogTitle>Order Details {order.orderNumber || `#${order.id.substring(0, 8)}`}</DialogTitle>
                           </DialogHeader>
                           {selectedOrder && (
                             <div className="space-y-6 py-4">
                               <div className="grid grid-cols-2 gap-8">
                                 <div className="space-y-3">
-                                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer Information</h4>
-                                  <div className="text-sm space-y-1">
-                                    <p className="font-bold">{selectedOrder.customerName}</p>
-                                    <p className="flex items-center gap-2"><Phone className="w-3 h-3" /> {selectedOrder.customerPhone}</p>
-                                    <p className="flex items-start gap-2"><MapPin className="w-3 h-3 mt-1" /> {selectedOrder.customerAddress}</p>
-                                    <p className="text-primary font-medium mt-2">{selectedOrder.deliveryRegion}</p>
+                                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Customer Information</h4>
+                                  <div className="text-sm space-y-2">
+                                    <p className="font-bold text-lg">{selectedOrder.customerName}</p>
+                                    <p className="flex items-center gap-2"><Phone className="w-3 h-3 text-primary" /> {selectedOrder.customerPhone}</p>
+                                    <p className="flex items-start gap-2"><MapPin className="w-3 h-3 mt-1 text-primary" /> {selectedOrder.customerAddress}</p>
+                                    <p className="inline-block px-2 py-1 bg-primary/10 text-primary rounded text-xs font-bold mt-2">{selectedOrder.deliveryRegion}</p>
                                   </div>
                                 </div>
                                 <div className="space-y-3">
-                                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Fulfillment Status</h4>
+                                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Fulfillment Status</h4>
                                   <div className="space-y-4">
                                     <Select 
                                       defaultValue={selectedOrder.status} 
@@ -139,40 +140,52 @@ export default function OrdersPage() {
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="Pending">Pending</SelectItem>
-                                        <SelectItem value="Accepted">Accepted (Deduct Stock)</SelectItem>
+                                        <SelectItem value="Accepted">Accepted (Shipment Prepared)</SelectItem>
                                         <SelectItem value="Delivered">Delivered</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled (Restore Stock)</SelectItem>
+                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
                                       </SelectContent>
                                     </Select>
-                                    <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-2">
-                                      <p className="flex items-center gap-2"><Clock className="w-3 h-3" /> Created: {format(selectedOrder.createdAt.seconds * 1000, "PPpp")}</p>
-                                      <p className="flex items-center gap-2"><Package className="w-3 h-3" /> Payment: {selectedOrder.paymentMethod}</p>
+                                    <div className="p-3 bg-muted/50 rounded-lg text-[10px] space-y-2 font-medium uppercase tracking-wider">
+                                      <p className="flex items-center gap-2 text-muted-foreground"><Clock className="w-3 h-3" /> Placed: {selectedOrder.createdAt ? format(selectedOrder.createdAt.seconds * 1000, "PPpp") : "Recently"}</p>
+                                      <p className="flex items-center gap-2 text-muted-foreground"><Package className="w-3 h-3" /> Method: {selectedOrder.paymentMethod}</p>
                                     </div>
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="space-y-3">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Order Items</h4>
-                                <div className="border rounded-lg overflow-hidden">
+                              <div className="space-y-4">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Order Items</h4>
+                                <div className="border rounded-xl overflow-hidden shadow-sm">
                                   <Table>
                                     <TableHeader className="bg-muted/50">
                                       <TableRow>
-                                        <TableHead className="h-9 text-xs">Product</TableHead>
-                                        <TableHead className="h-9 text-xs">Variant</TableHead>
-                                        <TableHead className="h-9 text-xs text-center">Qty</TableHead>
-                                        <TableHead className="h-9 text-xs text-right">Price</TableHead>
+                                        <TableHead className="h-10 text-xs">Product</TableHead>
+                                        <TableHead className="h-10 text-xs">Variant</TableHead>
+                                        <TableHead className="h-10 text-xs text-center">Qty</TableHead>
+                                        <TableHead className="h-10 text-xs text-right">Price</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                       {selectedOrder.items.map((item: any, idx: number) => (
                                         <TableRow key={idx}>
-                                          <TableCell className="py-2 text-sm font-medium">{item.name}</TableCell>
-                                          <TableCell className="py-2 text-xs text-muted-foreground">
-                                            {item.variant ? `${item.variant.color} / ${item.variant.size}` : "N/A"}
+                                          <TableCell className="py-3">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-12 h-14 relative rounded-md overflow-hidden bg-muted border flex-shrink-0 shadow-sm">
+                                                <Image 
+                                                  src={item.image || 'https://placehold.co/100x120?text=No+Image'} 
+                                                  alt={item.name} 
+                                                  fill 
+                                                  className="object-cover"
+                                                />
+                                              </div>
+                                              <span className="font-bold text-sm leading-tight">{item.name}</span>
+                                            </div>
                                           </TableCell>
-                                          <TableCell className="py-2 text-sm text-center">{item.quantity}</TableCell>
-                                          <TableCell className="py-2 text-sm text-right font-bold">Tk {item.price}</TableCell>
+                                          <TableCell className="py-3 text-xs text-muted-foreground italic">
+                                            {item.variant ? `${item.variant.color} / ${item.variant.size}` : "One Size"}
+                                          </TableCell>
+                                          <TableCell className="py-3 text-sm text-center font-medium">{item.quantity}</TableCell>
+                                          <TableCell className="py-3 text-sm text-right font-bold">Tk {item.price * item.quantity}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
@@ -180,17 +193,23 @@ export default function OrdersPage() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-col items-end gap-2 pt-4 border-t">
-                                <div className="flex justify-between w-48 text-sm">
-                                  <span className="text-muted-foreground">Subtotal:</span>
-                                  <span>Tk {selectedOrder.subtotal}</span>
+                              <div className="flex flex-col items-end gap-2 pt-6 border-t">
+                                <div className="flex justify-between w-64 text-sm text-muted-foreground">
+                                  <span>Subtotal:</span>
+                                  <span className="font-bold text-foreground">Tk {selectedOrder.subtotal}</span>
                                 </div>
-                                <div className="flex justify-between w-48 text-sm">
-                                  <span className="text-muted-foreground">Shipping:</span>
-                                  <span>Tk {selectedOrder.shippingCost}</span>
+                                <div className="flex justify-between w-64 text-sm text-muted-foreground">
+                                  <span>Shipping:</span>
+                                  <span className="font-bold text-foreground">Tk {selectedOrder.shippingCost}</span>
                                 </div>
-                                <div className="flex justify-between w-48 text-lg font-bold">
-                                  <span>Total:</span>
+                                {selectedOrder.discount > 0 && (
+                                  <div className="flex justify-between w-64 text-sm font-bold text-green-600 bg-green-50 p-2 rounded">
+                                    <span>Discount:</span>
+                                    <span>-Tk {selectedOrder.discount}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between w-64 text-2xl font-bold pt-4 border-t border-muted-foreground/10">
+                                  <span className="text-primary">Total:</span>
                                   <span className="text-primary">Tk {selectedOrder.total}</span>
                                 </div>
                               </div>

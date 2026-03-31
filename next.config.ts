@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -10,6 +11,14 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
+      },
       {
         protocol: 'https',
         hostname: 'placehold.co',
@@ -40,6 +49,26 @@ const nextConfig: NextConfig = {
         hostname: '**.fbsbx.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '**.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.imgur.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.shopify.com',
+        pathname: '/**',
+      }
     ],
   },
 };
