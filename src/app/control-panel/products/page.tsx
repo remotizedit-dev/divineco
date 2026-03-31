@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Trash2, Image as ImageIcon, Filter } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Trash2, Image as ImageIcon, Filter, List } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -26,7 +26,7 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, serverTimestamp, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
@@ -40,11 +40,12 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
   
   const [variants, setVariants] = useState<VariantInput[]>([
     { color: "", size: "", stock: 0 }
@@ -114,7 +115,7 @@ export default function ProductsPage() {
     setImageUrls(newUrls);
   };
 
-  const handleAddCategory = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveCategory = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
 
@@ -134,12 +135,11 @@ export default function ProductsPage() {
     addDocumentNonBlocking(collection(firestore, "categories"), categoryData);
     
     toast({ title: "Category Submitted", description: "Your category is being created." });
-    setIsAddCategoryOpen(false);
-    // Optimistic refresh
+    setIsCategoryDialogOpen(false);
     setTimeout(refreshData, 1000);
   };
 
-  const handleAddProduct = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveProduct = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
     
@@ -165,38 +165,64 @@ export default function ProductsPage() {
       thumbnailUrl,
       imageUrls: images,
       isActive: true,
-      tags: ["New Arrival"],
-      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       stock: totalStock,
     };
 
-    addDocumentNonBlocking(collection(firestore, "products"), productData)
-      ?.then((productRef) => {
-        if (!productRef) return;
-        const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
-        
-        for (const variant of variants) {
-          if (variant.size || variant.color) {
-            addDocumentNonBlocking(variantsCol, {
-              productId: productRef.id,
-              color: variant.color || "Default",
-              size: variant.size || "One Size",
-              sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
-              stockQuantity: Number(variant.stock),
-              variantSpecificImageUrls: [thumbnailUrl],
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            });
+    if (editingProduct) {
+      updateDocumentNonBlocking(doc(firestore, "products", editingProduct.id), productData);
+      toast({ title: "Product Updated", description: "The changes are being saved." });
+    } else {
+      const newProductData = {
+        ...productData,
+        tags: ["New Arrival"],
+        createdAt: serverTimestamp(),
+      };
+      addDocumentNonBlocking(collection(firestore, "products"), newProductData)
+        ?.then((productRef) => {
+          if (!productRef) return;
+          const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
+          
+          for (const variant of variants) {
+            if (variant.size || variant.color) {
+              addDocumentNonBlocking(variantsCol, {
+                productId: productRef.id,
+                color: variant.color || "Default",
+                size: variant.size || "One Size",
+                sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
+                stockQuantity: Number(variant.stock),
+                variantSpecificImageUrls: [thumbnailUrl],
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+            }
           }
-        }
-      });
+        });
+      toast({ title: "Product Created", description: "The product is being added to inventory." });
+    }
 
-    toast({ title: "Product Submitted", description: "Saving product and its variants..." });
-    setIsAddDialogOpen(false);
+    setIsProductDialogOpen(false);
+    setEditingProduct(null);
     setVariants([{ color: "", size: "", stock: 0 }]);
     setImageUrls([""]);
     setTimeout(refreshData, 1500);
+  };
+
+  const openEditDialog = (product: any) => {
+    setEditingProduct(product);
+    setImageUrls(product.imageUrls || [product.thumbnailUrl] || [""]);
+    // For prototype, we just edit basic details. Stock/variants might need separate fetching/handling.
+    setVariants([{ color: "Existing", size: "Existing", stock: product.stock || 0 }]);
+    setIsProductDialogOpen(true);
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    if (!firestore) return;
+    if (confirm("Are you sure you want to delete this product?")) {
+      deleteDocumentNonBlocking(doc(firestore, "products", productId));
+      toast({ title: "Product Deleted", description: "Inventory updated successfully." });
+      setTimeout(refreshData, 1000);
+    }
   };
 
   return (
@@ -207,7 +233,34 @@ export default function ProductsPage() {
           <p className="text-sm text-muted-foreground">Manage your boutique inventory and variants.</p>
         </div>
         <div className="flex gap-3">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <List className="w-4 h-4" /> Add Category
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add New Category</DialogTitle></DialogHeader>
+              <form onSubmit={handleSaveCategory} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="catName">Category Name</Label>
+                  <Input id="catName" name="catName" placeholder="e.g. Accessories" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="catDesc">Description</Label>
+                  <Textarea id="catDesc" name="catDesc" placeholder="Brief description..." />
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Save Category</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
+            setIsProductDialogOpen(open);
+            if (!open) setEditingProduct(null);
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" /> Add Product
@@ -215,67 +268,42 @@ export default function ProductsPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
+                <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddProduct} className="space-y-8 py-4">
+              <form onSubmit={handleSaveProduct} className="space-y-8 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Product Name</Label>
-                    <Input id="name" name="name" placeholder="e.g. Silk Evening Gown" required />
+                    <Input id="name" name="name" defaultValue={editingProduct?.name} placeholder="e.g. Silk Evening Gown" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="slug">Slug</Label>
-                    <Input id="slug" name="slug" placeholder="silk-evening-gown" required />
+                    <Input id="slug" name="slug" defaultValue={editingProduct?.slug} placeholder="silk-evening-gown" required />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" placeholder="Describe the product..." required className="min-h-[100px]" />
+                  <Textarea id="description" name="description" defaultValue={editingProduct?.description} placeholder="Describe the product..." required className="min-h-[100px]" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="price">Base Price (Tk)</Label>
-                    <Input id="price" name="price" type="number" placeholder="2500" required />
+                    <Input id="price" name="price" type="number" defaultValue={editingProduct?.basePrice} placeholder="2500" required />
                   </div>
                   <div className="space-y-2">
                     <Label>Category</Label>
-                    <div className="flex gap-2">
-                      <Select name="categoryId" required>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-                        <DialogTrigger asChild>
-                          <Button type="button" variant="outline" size="icon" className="shrink-0">
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader><DialogTitle>Add New Category</DialogTitle></DialogHeader>
-                          <form onSubmit={handleAddCategory} className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="catName">Category Name</Label>
-                              <Input id="catName" name="catName" placeholder="e.g. Accessories" required />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="catDesc">Description</Label>
-                              <Textarea id="catDesc" name="catDesc" placeholder="Brief description..." />
-                            </div>
-                            <DialogFooter>
-                              <Button type="submit">Save Category</Button>
-                            </DialogFooter>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
+                    <Select name="categoryId" defaultValue={editingProduct?.categoryId} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -301,41 +329,43 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Product Variants</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addVariantRow} className="gap-1">
-                      <Plus className="w-3 h-3" /> Add Variant
-                    </Button>
+                {!editingProduct && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-base font-semibold">Product Variants</Label>
+                      <Button type="button" variant="outline" size="sm" onClick={addVariantRow} className="gap-1">
+                        <Plus className="w-3 h-3" /> Add Variant
+                      </Button>
+                    </div>
+                    <div className="space-y-3">
+                      {variants.map((v, index) => (
+                        <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-4 rounded-lg border">
+                          <div className="col-span-4 space-y-1.5">
+                            <Label className="text-xs">Color</Label>
+                            <Input value={v.color} onChange={(e) => updateVariant(index, "color", e.target.value)} placeholder="Red" className="h-9 text-sm" />
+                          </div>
+                          <div className="col-span-4 space-y-1.5">
+                            <Label className="text-xs">Size</Label>
+                            <Input value={v.size} onChange={(e) => updateVariant(index, "size", e.target.value)} placeholder="M" className="h-9 text-sm" required />
+                          </div>
+                          <div className="col-span-3 space-y-1.5">
+                            <Label className="text-xs">Stock</Label>
+                            <Input type="number" value={v.stock} onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)} placeholder="0" className="h-9 text-sm" required />
+                          </div>
+                          <div className="col-span-1 pb-1">
+                            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeVariantRow(index)} disabled={variants.length <= 1}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    {variants.map((v, index) => (
-                      <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-4 rounded-lg border">
-                        <div className="col-span-4 space-y-1.5">
-                          <Label className="text-xs">Color</Label>
-                          <Input value={v.color} onChange={(e) => updateVariant(index, "color", e.target.value)} placeholder="Red" className="h-9 text-sm" />
-                        </div>
-                        <div className="col-span-4 space-y-1.5">
-                          <Label className="text-xs">Size</Label>
-                          <Input value={v.size} onChange={(e) => updateVariant(index, "size", e.target.value)} placeholder="M" className="h-9 text-sm" required />
-                        </div>
-                        <div className="col-span-3 space-y-1.5">
-                          <Label className="text-xs">Stock</Label>
-                          <Input type="number" value={v.stock} onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)} placeholder="0" className="h-9 text-sm" required />
-                        </div>
-                        <div className="col-span-1 pb-1">
-                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeVariantRow(index)} disabled={variants.length <= 1}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                )}
                 
                 <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit">Save Product</Button>
+                  <Button type="button" variant="ghost" onClick={() => setIsProductDialogOpen(false)}>Cancel</Button>
+                  <Button type="submit">{editingProduct ? "Update Product" : "Save Product"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -422,8 +452,12 @@ export default function ProductsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem className="gap-2"><Edit className="w-4 h-4" /> Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive"><Trash className="w-4 h-4" /> Delete</DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(product)}>
+                        <Edit className="w-4 h-4" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDeleteProduct(product.id)}>
+                        <Trash className="w-4 h-4" /> Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
