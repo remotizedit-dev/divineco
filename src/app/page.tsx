@@ -15,20 +15,20 @@ import { ChevronRight } from "lucide-react";
 
 export default function Home() {
   const [flashSaleProducts, setFlashSaleProducts] = useState<any[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [newArrivals, setNewArrivals] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [flash, featured, cats] = await Promise.all([
+        const [flash, arrivals, cats] = await Promise.all([
           getProducts({ isFlashSale: true, limit: 4 }),
-          getProducts({ limit: 8 }),
+          getProducts({ isNewArrival: true, limit: 8 }),
           getCategories()
         ]);
         setFlashSaleProducts(flash || []);
-        setFeaturedProducts(featured || []);
+        setNewArrivals(arrivals || []);
         setCategories(cats || []);
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
@@ -103,8 +103,8 @@ export default function Home() {
       <section className="container mx-auto px-4 py-16">
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-3xl font-headline font-bold">Shop by Category</h2>
-          <Link href="/categories" className="text-primary font-medium flex items-center gap-1 hover:underline">
-            View All <ChevronRight className="w-4 h-4" />
+          <Link href="/products" className="text-primary font-medium flex items-center gap-1 hover:underline">
+            View All Products <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -141,7 +141,7 @@ export default function Home() {
                 <CountdownTimer targetDate={new Date(Date.now() + 86400000)} />
               </div>
               <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white" asChild>
-                <Link href="/flash-sales">View All Offers</Link>
+                <Link href="/products?sale=true">View All Offers</Link>
               </Button>
             </div>
             
@@ -154,16 +154,16 @@ export default function Home() {
         </section>
       )}
 
-      {/* Featured Products */}
+      {/* New Arrivals Section */}
       <section className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-headline font-bold mb-10 text-center">New Arrivals</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product: any) => (
+          {newArrivals.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
-          {featuredProducts.length === 0 && !isLoading && (
+          {newArrivals.length === 0 && !isLoading && (
              <div className="col-span-full py-20 text-center text-muted-foreground">
-                No products found.
+                No new arrivals at the moment.
              </div>
           )}
         </div>

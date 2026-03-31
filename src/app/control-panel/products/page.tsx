@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Trash2, Image as ImageIcon, Filter, List } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Trash2, Image as ImageIcon, Filter, Eye } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -43,15 +43,18 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<any | null>(null);
   const [isLoadingVariants, setIsLoadingVariants] = useState(false);
   
   const [variants, setVariants] = useState<VariantInput[]>([
     { color: "", size: "", stock: 0 }
   ]);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
+  const [isNewArrival, setIsNewArrival] = useState(false);
   
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -157,6 +160,8 @@ export default function ProductsPage() {
     const thumbnailUrl = finalImages[0] || defaultPlaceholder;
     const images = finalImages.length > 0 ? finalImages : [defaultPlaceholder];
 
+    const tags = isNewArrival ? ["New Arrival"] : [];
+
     const productData = {
       name,
       slug,
@@ -168,17 +173,15 @@ export default function ProductsPage() {
       isActive: true,
       updatedAt: serverTimestamp(),
       stock: totalStock,
+      tags: tags
     };
 
     if (editingProduct) {
       updateDocumentNonBlocking(doc(firestore, "products", editingProduct.id), productData);
-      // For simplicity in prototype, we just update the product document. 
-      // Individual variant management (update/delete/add) would typically happen here.
       toast({ title: "Product Updated", description: "The changes are being saved." });
     } else {
       const newProductData = {
         ...productData,
-        tags: ["New Arrival"],
         createdAt: serverTimestamp(),
       };
       addDocumentNonBlocking(collection(firestore, "products"), newProductData)
@@ -208,12 +211,14 @@ export default function ProductsPage() {
     setEditingProduct(null);
     setVariants([{ color: "", size: "", stock: 0 }]);
     setImageUrls([""]);
+    setIsNewArrival(false);
     setTimeout(refreshData, 1500);
   };
 
   const openEditDialog = async (product: any) => {
     setEditingProduct(product);
     setImageUrls(product.imageUrls || [product.thumbnailUrl] || [""]);
+    setIsNewArrival(product.tags?.includes("New Arrival") || false);
     setIsProductDialogOpen(true);
     
     if (firestore) {
@@ -236,6 +241,30 @@ export default function ProductsPage() {
       } catch (err) {
         console.error("Failed to load variants:", err);
         setVariants([{ color: "Existing", size: "Existing", stock: product.stock || 0 }]);
+      } finally {
+        setIsLoadingVariants(false);
+      }
+    }
+  };
+
+  const openViewDialog = async (product: any) => {
+    setViewingProduct(product);
+    setIsViewDialogOpen(true);
+    
+    if (firestore) {
+      setIsLoadingVariants(true);
+      try {
+        const variantsCol = collection(firestore, "products", product.id, "productVariants");
+        const snap = await getDocs(query(variantsCol));
+        const fetchedVariants = snap.docs.map(doc => ({
+          id: doc.id,
+          color: doc.data().color,
+          size: doc.data().size,
+          stock: doc.data().stockQuantity || 0
+        }));
+        setViewingProduct((prev: any) => ({ ...prev, variants: fetchedVariants }));
+      } catch (err) {
+        console.error("Failed to load variants for view:", err);
       } finally {
         setIsLoadingVariants(false);
       }
@@ -289,6 +318,7 @@ export default function ProductsPage() {
               setEditingProduct(null);
               setVariants([{ color: "", size: "", stock: 0 }]);
               setImageUrls([""]);
+              setIsNewArrival(false);
             }
           }}>
             <DialogTrigger asChild>
@@ -335,6 +365,17 @@ export default function ProductsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="newArrival" 
+                    checked={isNewArrival} 
+                    onCheckedChange={(checked) => setIsNewArrival(checked as boolean)}
+                  />
+                  <Label htmlFor="newArrival" className="text-sm font-medium leading-none cursor-pointer">
+                    Mark as New Arrival
+                  </Label>
                 </div>
 
                 <div className="space-y-4">
@@ -405,6 +446,64 @@ export default function ProductsPage() {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* View Dialog */}
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Product Stock Details</DialogTitle>
+              </DialogHeader>
+              {viewingProduct && (
+                <div className="space-y-6 py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-lg bg-muted overflow-hidden">
+                      <img src={viewingProduct.thumbnailUrl} alt={viewingProduct.name} className="object-cover w-full h-full" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">{viewingProduct.name}</h3>
+                      <p className="text-sm text-muted-foreground">Tk {viewingProduct.basePrice}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Variant Inventory</h4>
+                    {isLoadingVariants ? (
+                       <div className="flex justify-center p-4"><Loader2 className="w-5 h-5 animate-spin" /></div>
+                    ) : (
+                      <div className="border rounded-lg overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow>
+                              <TableHead className="h-9 text-xs">Color</TableHead>
+                              <TableHead className="h-9 text-xs">Size</TableHead>
+                              <TableHead className="h-9 text-xs text-right">Stock</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {viewingProduct.variants?.map((v: any, idx: number) => (
+                              <TableRow key={idx}>
+                                <TableCell className="py-2 text-sm">{v.color}</TableCell>
+                                <TableCell className="py-2 text-sm">{v.size}</TableCell>
+                                <TableCell className="py-2 text-sm text-right font-bold">{v.stock}</TableCell>
+                              </TableRow>
+                            ))}
+                            {!viewingProduct.variants?.length && (
+                              <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">No variants found</TableCell></TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="pt-4 flex justify-between items-center border-t">
+                    <span className="text-sm font-medium">Total Inventory</span>
+                    <Badge variant="secondary" className="text-sm">{viewingProduct.stock || 0} Units</Badge>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -448,6 +547,7 @@ export default function ProductsPage() {
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -478,6 +578,11 @@ export default function ProductsPage() {
                     {product.stock || 0} in stock
                   </Badge>
                 </TableCell>
+                <TableCell>
+                  {product.tags?.includes("New Arrival") && (
+                    <Badge variant="outline" className="border-primary text-primary">New Arrival</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -487,6 +592,9 @@ export default function ProductsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem className="gap-2" onClick={() => openViewDialog(product)}>
+                        <Eye className="w-4 h-4" /> View
+                      </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(product)}>
                         <Edit className="w-4 h-4" /> Edit
                       </DropdownMenuItem>

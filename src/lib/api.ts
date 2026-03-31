@@ -14,7 +14,9 @@ import {
   limit, 
   increment, 
   writeBatch,
-  serverTimestamp
+  serverTimestamp,
+  CollectionReference,
+  DocumentData
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -32,7 +34,12 @@ export async function createCategory(data: any) {
 }
 
 // --- Product API ---
-export async function getProducts(options: { categoryId?: string; limit?: number; isFlashSale?: boolean } = {}) {
+export async function getProducts(options: { 
+  categoryId?: string; 
+  limit?: number; 
+  isFlashSale?: boolean;
+  isNewArrival?: boolean;
+} = {}) {
   let q = query(collection(db, "products"), orderBy("createdAt", "desc"));
   
   if (options.categoryId) {
@@ -41,6 +48,10 @@ export async function getProducts(options: { categoryId?: string; limit?: number
   
   if (options.isFlashSale) {
     q = query(collection(db, "products"), where("isFlashSale", "==", true), orderBy("createdAt", "desc"));
+  }
+
+  if (options.isNewArrival) {
+    q = query(collection(db, "products"), where("tags", "array-contains", "New Arrival"), orderBy("createdAt", "desc"));
   }
 
   if (options.limit) {
@@ -102,7 +113,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
 
   const batch = writeBatch(db);
 
-  // Stock deduction logic: Deduct only when status moves to 'Accepted' or 'Delivered'
+  // Stock deduction logic
   const statusesDeductStock = ["Accepted", "Delivered"];
   const statusesRestoreStock = ["Cancelled"];
 
@@ -141,7 +152,6 @@ export async function getDashboardStats() {
   const totalSales = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + curr.total, 0);
   const totalProfit = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + (curr.total - (curr.cost || 0)), 0);
   
-  // Simplified for prototype
   return {
     totalSales,
     totalProfit,
