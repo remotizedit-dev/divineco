@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -6,6 +7,7 @@ import { AnnouncementTicker } from "@/components/public/AnnouncementTicker";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/lib/api";
 import { ProductCard } from "@/components/public/ProductCard";
 import { useFirestore } from "@/firebase";

@@ -98,7 +98,7 @@ export default function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Image Gallery */}
           <div className="space-y-4">
-            <div className="relative aspect-square rounded-3xl overflow-hidden border bg-muted shadow-lg">
+            <div className="relative aspect-[4/5] rounded-3xl overflow-hidden border bg-muted shadow-lg">
               <Image 
                 src={activeImage} 
                 alt={product.name} 
@@ -135,7 +135,7 @@ export default function ProductDetailPage() {
                 )}
               </div>
               
-              <h1 className="font-headline text-5xl font-bold leading-tight">{product.name}</h1>
+              <h1 className="font-headline text-4xl md:text-5xl font-bold leading-tight">{product.name}</h1>
               
               <div className="flex items-baseline gap-4">
                 <p className="text-4xl font-bold text-primary">Tk {product.salesPrice}</p>
@@ -188,7 +188,7 @@ export default function ProductDetailPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
               <Button size="lg" className="flex-1 h-16 rounded-2xl text-xl gap-3 shadow-xl shadow-primary/20" onClick={handleAddToCart}>
-                <ShoppingCart className="w-6 h-6" /> Add to Shopping Bag
+                <ShoppingCart className="w-6 h-6" /> Order Now
               </Button>
             </div>
 
