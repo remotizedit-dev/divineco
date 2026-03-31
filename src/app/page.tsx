@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from "react";
@@ -26,15 +27,14 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch banners from Firestore
         const bannersSnap = await getDocs(query(collection(firestore, "homepageBanners"), orderBy("displayOrder", "asc")));
         const fetchedBanners = bannersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setBanners(fetchedBanners);
 
         const [flash, arrivals, all] = await Promise.all([
           getProducts({ isFlashSale: true, limit: 4 }),
-          getProducts({ isNewArrival: true, limit: 8 }), // 2 rows of 4
-          getProducts({ limit: 12 }) // Initial load for "All Products"
+          getProducts({ isNewArrival: true, limit: 8 }),
+          getProducts({ limit: 12 })
         ]);
         
         setFlashSaleProducts(flash || []);
@@ -52,8 +52,6 @@ export default function Home() {
   const loadMoreProducts = async () => {
     setIsLoadingMore(true);
     try {
-      // In a real app, we'd use startAfter(lastDoc) for pagination.
-      // For this prototype, we'll just fetch more items.
       const more = await getProducts({ limit: 24 });
       setAllProducts(more);
     } finally {
@@ -66,7 +64,7 @@ export default function Home() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse font-headline italic">Divine Boutique...</p>
+          <p className="text-muted-foreground animate-pulse font-headline italic">Divine Shoe Store...</p>
         </div>
       </div>
     );
@@ -77,7 +75,6 @@ export default function Home() {
       <AnnouncementTicker />
       <Navbar />
       
-      {/* Hero Section */}
       <section className="relative h-[60vh] md:h-[80vh] w-full overflow-hidden">
         {banners.length > 0 ? (
           <Carousel className="w-full h-full" opts={{ loop: true }}>
@@ -99,7 +96,7 @@ export default function Home() {
                       {banner.description}
                     </p>
                     <Button size="lg" className="rounded-full px-10 h-14 text-lg shadow-xl hover:scale-105 transition-transform" asChild>
-                      <Link href={banner.targetUrl || "/products"}>Shop the Collection</Link>
+                      <Link href={banner.targetUrl || "/products"}>Explore Footwear</Link>
                     </Button>
                   </div>
                 </CarouselItem>
@@ -114,32 +111,25 @@ export default function Home() {
           </Carousel>
         ) : (
           <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-12 text-center">
-            <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4">Divine Elegance</h1>
-            <p className="text-muted-foreground max-w-md">Your premium boutique experience is loading. Visit the admin panel to customize your hero banners.</p>
+            <h1 className="font-headline text-5xl md:text-7xl font-bold mb-4">Divine Shoe Store</h1>
+            <p className="text-muted-foreground max-w-md">Quality steps for a premium lifestyle. Manage your banners in the admin panel.</p>
           </div>
         )}
       </section>
 
-      {/* New Arrivals Section */}
       <section id="new-arrivals" className="container mx-auto px-4 py-20 scroll-mt-20">
         <div className="flex flex-col items-center mb-12">
           <h2 className="text-4xl font-headline font-bold mb-2">New Arrivals</h2>
           <div className="w-20 h-1 bg-primary rounded-full"></div>
-          <p className="text-muted-foreground mt-4 italic">Fresh styles curated just for you</p>
+          <p className="text-muted-foreground mt-4 italic">The latest steps in fashion</p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {newArrivals.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
-          {newArrivals.length === 0 && (
-             <div className="col-span-full py-20 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed">
-                No new arrivals at the moment.
-             </div>
-          )}
         </div>
       </section>
 
-      {/* Flash Sale Section */}
       {flashSaleProducts.length > 0 && (
         <section className="bg-primary/5 py-20">
           <div className="container mx-auto px-4">
@@ -149,7 +139,7 @@ export default function Home() {
                 <CountdownTimer targetDate={new Date(Date.now() + 86400000)} />
               </div>
               <Button variant="outline" className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-white rounded-full px-8" asChild>
-                <Link href="/products?sale=true">View Limited Offers</Link>
+                <Link href="/products?sale=true">View Sale Items</Link>
               </Button>
             </div>
             
@@ -162,10 +152,9 @@ export default function Home() {
         </section>
       )}
 
-      {/* All Products Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="flex flex-col items-center mb-12">
-          <h2 className="text-4xl font-headline font-bold mb-2">Our Full Collection</h2>
+          <h2 className="text-4xl font-headline font-bold mb-2">The Shoe Collection</h2>
           <div className="w-20 h-1 bg-primary rounded-full"></div>
         </div>
         
@@ -194,31 +183,33 @@ export default function Home() {
 }
 
 function Footer() {
+  const logoUrl = "https://scontent.fdac135-1.fna.fbcdn.net/v/t39.30808-6/628435890_122197311278360003_8388629514506424761_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=2a1932&_nc_eui2=AeFHbPqMNMzeFabHnjPiUzvbas5aCNVn-kRqzloI1Wf6RHybfOk8Ngj71yZCJhpj75lVDwtqEovNxe0-O8o3FXav&_nc_ohc=u3Kitqoz264Q7kNvwGcn208&_nc_oc=AdrYML2ykAmp2oW7ealAClsd5IWtM7xA1YQy3ZjLWohDgf7J32UsUC3eFNA2cdSren_Y8T0nJ549vDNMLe-z84mL&_nc_zt=23&_nc_ht=scontent.fdac135-1.fna&_nc_gid=h1A5DOxHEA-tYX-YWh7LYQ&_nc_ss=7a3a8&oh=00_Afx1sjSxJn-9eMnWYoDYNIClTECgnuXBK_vHm0Jol6U2eQ&oe=69D1868C";
+
   return (
     <footer className="bg-white py-20 mt-20 border-t">
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1">
-          <h3 className="font-headline text-3xl font-bold text-primary mb-6">Divine.Co</h3>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="relative w-12 h-12 rounded-full overflow-hidden border shadow-sm">
+              <Image src={logoUrl} alt="Divine.Co Logo" fill className="object-cover" />
+            </div>
+            <h3 className="font-headline text-3xl font-bold text-primary">Divine.Co</h3>
+          </div>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-            Experience the finest in premium boutique fashion. We curate elegance for the discerning modern woman.
+            Premium Shoe Store for the discerning modern lifestyle. We provide comfort and elegance in every step.
           </p>
           <div className="flex gap-4 mt-6">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer">
               <span className="sr-only">Facebook</span>
               <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3V2z" /></svg>
             </div>
-            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-white transition-colors cursor-pointer">
-              <span className="sr-only">Instagram</span>
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M7 2C4.24 2 2 4.24 2 7v10c0 2.76 2.24 5 5 5h10c2.76 0 5-2.24 5-5V7c0-2.76-2.24-5-5-5H7zm10 2c1.66 0 3 1.34 3 3v10c0 1.66-1.34 3-3 3H7c-1.66 0-3-1.34-3-3V7c0-1.66 1.34-3 3-3h10zM12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm4.5-2a.75.75 0 100 1.5.75.75 0 000-1.5z" /></svg>
-            </div>
           </div>
         </div>
         <div>
           <h4 className="font-bold mb-6 text-sm uppercase tracking-wider">Navigation</h4>
           <ul className="space-y-3 text-sm text-muted-foreground">
-            <li><Link href="/products" className="hover:text-primary transition-colors">Our Collections</Link></li>
+            <li><Link href="/products" className="hover:text-primary transition-colors">All Shoes</Link></li>
             <li><Link href="/#new-arrivals" className="hover:text-primary transition-colors">New Arrivals</Link></li>
-            <li><Link href="/cart" className="hover:text-primary transition-colors">Shopping Bag</Link></li>
             <li><Link href="/control-panel" className="hover:text-primary transition-colors">Admin Portal</Link></li>
           </ul>
         </div>
@@ -227,13 +218,12 @@ function Footer() {
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li><Link href="#" className="hover:text-primary transition-colors">Shipping Policy</Link></li>
             <li><Link href="#" className="hover:text-primary transition-colors">Returns & Exchanges</Link></li>
-            <li><Link href="#" className="hover:text-primary transition-colors">Track Your Order</Link></li>
             <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
           </ul>
         </div>
         <div>
-          <h4 className="font-bold mb-6 text-sm uppercase tracking-wider">Join Divine.Co</h4>
-          <p className="text-sm text-muted-foreground mb-4">Be the first to hear about new collections and exclusive offers.</p>
+          <h4 className="font-bold mb-6 text-sm uppercase tracking-wider">Join Us</h4>
+          <p className="text-sm text-muted-foreground mb-4">Get the latest footwear trends and exclusive offers.</p>
           <div className="flex flex-col gap-2">
             <input type="email" placeholder="Your email address" className="bg-muted/50 border rounded-md px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary transition-all" />
             <Button className="w-full">Subscribe</Button>
@@ -241,11 +231,11 @@ function Footer() {
         </div>
       </div>
       <div className="container mx-auto px-4 mt-20 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] text-muted-foreground uppercase tracking-widest">
-        <span>© 2024 Divine.Co Boutique. All rights reserved.</span>
+        <span>© 2024 Divine.Co Shoe Store. All rights reserved.</span>
         <div className="flex gap-6">
           <span>Secure Payments</span>
           <span>Fast Shipping</span>
-          <span>Handmade Quality</span>
+          <span>Quality Footwear</span>
         </div>
       </div>
     </footer>

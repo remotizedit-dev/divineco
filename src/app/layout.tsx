@@ -1,11 +1,16 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Divine.Co | Premium Boutique',
-  description: 'Elegant boutique experience for the discerning shopper.',
+  title: 'Divine.Co | Premium Shoe Store & Footwear',
+  description: 'Discover the finest collection of premium footwear and shoes. From elegant formal wear to comfortable casuals, Divine.Co offers quality and style for every step.',
+  keywords: 'shoes, footwear, premium shoes, leather shoes, sneakers, formal shoes, Divine.Co, shoe store, quality footwear',
+  authors: [{ name: 'Divine.Co' }],
+  viewport: 'width=device-width, initial-scale=1',
+  robots: 'index, follow',
 };
 
 export default function RootLayout({
