@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -11,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, MoreHorizontal, Edit, Trash, Copy, Loader2, Trash2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash, Copy, Loader2, Trash2, Image as ImageIcon } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -45,7 +44,6 @@ export default function ProductsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // State for dynamic variants
   const [variants, setVariants] = useState<VariantInput[]>([
     { color: "", size: "", stock: 0 }
   ]);
@@ -106,8 +104,10 @@ export default function ProductsPage() {
     const description = formData.get("description") as string;
     const basePrice = Number(formData.get("price"));
     const categoryId = formData.get("categoryId") as string;
+    const imageUrl = formData.get("imageUrl") as string;
 
     const totalStock = variants.reduce((sum, v) => sum + Number(v.stock), 0);
+    const finalImageUrl = imageUrl || `https://picsum.photos/seed/${Math.random()}/600/600`;
 
     const productData = {
       name,
@@ -115,8 +115,8 @@ export default function ProductsPage() {
       description,
       basePrice,
       categoryId,
-      thumbnailUrl: `https://picsum.photos/seed/${Math.random()}/600/600`,
-      imageUrls: [`https://picsum.photos/seed/${Math.random()}/600/600`],
+      thumbnailUrl: finalImageUrl,
+      imageUrls: [finalImageUrl],
       isActive: true,
       tags: ["New Arrival"],
       createdAt: serverTimestamp(),
@@ -125,10 +125,7 @@ export default function ProductsPage() {
     };
 
     try {
-      // Create the product document first
       const productRef = await addDoc(collection(firestore, "products"), productData);
-      
-      // Create variants in the subcollection
       const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
       
       for (const variant of variants) {
@@ -139,7 +136,7 @@ export default function ProductsPage() {
             size: variant.size || "One Size",
             sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
             stockQuantity: Number(variant.stock),
-            variantSpecificImageUrls: [productData.thumbnailUrl],
+            variantSpecificImageUrls: [finalImageUrl],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
@@ -148,11 +145,11 @@ export default function ProductsPage() {
 
       toast({
         title: "Product added",
-        description: `${name} has been created with ${variants.length} variant(s).`,
+        description: `${name} has been created successfully.`,
       });
       
       setIsAddDialogOpen(false);
-      setVariants([{ color: "", size: "", stock: 0 }]); // Reset variants
+      setVariants([{ color: "", size: "", stock: 0 }]);
       refreshData();
     } catch (error: any) {
       toast({
@@ -228,6 +225,17 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="imageUrl">Product Image URL</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input id="imageUrl" name="imageUrl" placeholder="https://example.com/image.jpg" />
+                      <ImageIcon className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Provide a direct link to the product image.</p>
+                </div>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">Product Variants</Label>
@@ -285,7 +293,7 @@ export default function ProductsPage() {
                     ))}
                   </div>
                   <p className="text-[10px] text-muted-foreground italic">
-                    Total stock will be calculated automatically: {variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)}
+                    Total stock will be calculated automatically.
                   </p>
                 </div>
                 
@@ -303,7 +311,7 @@ export default function ProductsPage() {
 
       <div className="flex items-center gap-4 bg-background p-4 rounded-lg border">
         <Search className="w-5 h-5 text-muted-foreground" />
-        <Input placeholder="Search by product name or SKU..." className="border-none shadow-none focus-visible:ring-0" />
+        <Input placeholder="Search by product name..." className="border-none shadow-none focus-visible:ring-0" />
       </div>
 
       <div className="bg-background rounded-lg border overflow-hidden">
@@ -348,9 +356,6 @@ export default function ProductsPage() {
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-bold text-sm">Tk {product.basePrice}</span>
-                    {product.discountedPrice && (
-                      <span className="text-xs line-through text-muted-foreground">Tk {product.discountedPrice}</span>
-                    )}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -373,7 +378,6 @@ export default function ProductsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem className="gap-2"><Edit className="w-4 h-4" /> Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2"><Copy className="w-4 h-4" /> Duplicate</DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 text-destructive"><Trash className="w-4 h-4" /> Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -402,13 +406,6 @@ export default function ProductsPage() {
               <div className="flex gap-2">
                 <Input type="number" placeholder="Enter percentage..." />
                 <Button>Apply</Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Flash Sale Timer (Hours)</label>
-              <div className="flex gap-2">
-                <Input type="number" placeholder="Hours to run..." />
-                <Button variant="secondary">Start Flash Sale</Button>
               </div>
             </div>
           </div>
