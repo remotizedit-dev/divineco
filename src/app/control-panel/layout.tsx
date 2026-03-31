@@ -3,7 +3,7 @@
 
 import { useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut, Menu, Loader2 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@/firebase";
@@ -13,7 +13,6 @@ const navigation = [
   { name: 'Dashboard', href: '/control-panel', icon: LayoutDashboard },
   { name: 'Orders', href: '/control-panel/orders', icon: ShoppingCart },
   { name: 'Products', href: '/control-panel/products', icon: Package },
-  { name: 'Categories', href: '/control-panel/categories', icon: Menu },
   { name: 'Settings', href: '/control-panel/settings', icon: Settings },
 ];
 
@@ -45,12 +44,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // If we are on the login page, don't show the sidebar layout
   if (isLoginPage) {
     return <>{children}</>;
   }
 
-  // If not logged in and not on login page, render nothing while redirecting
   if (!user) {
     return null;
   }

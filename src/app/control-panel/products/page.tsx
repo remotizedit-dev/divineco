@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { getProducts, getCategories } from "@/lib/api";
+import { getProducts, getCategories, createCategory } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, MoreHorizontal, Edit, Trash, Copy, Loader2, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash, Loader2, Trash2, Image as ImageIcon, Filter } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -42,7 +43,10 @@ export default function ProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   
   const [variants, setVariants] = useState<VariantInput[]>([
     { color: "", size: "", stock: 0 }
@@ -66,6 +70,12 @@ export default function ProductsPage() {
     }
   };
 
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = categoryFilter === "all" || p.categoryId === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
   const toggleSelect = (id: string) => {
     setSelectedProducts(prev => 
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
@@ -74,7 +84,7 @@ export default function ProductsPage() {
 
   const toggleSelectAll = () => {
     setSelectedProducts(prev => 
-      prev.length === products.length ? [] : products.map(p => p.id)
+      prev.length === filteredProducts.length ? [] : filteredProducts.map(p => p.id)
     );
   };
 
@@ -106,6 +116,26 @@ export default function ProductsPage() {
     setImageUrls(newUrls);
   };
 
+  const handleAddCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("catName") as string;
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+    const description = formData.get("catDesc") as string;
+
+    try {
+      await createCategory({ name, slug, description, updatedAt: serverTimestamp() });
+      toast({ title: "Category added", description: `${name} has been created.` });
+      setIsAddCategoryOpen(false);
+      refreshData();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
@@ -120,8 +150,6 @@ export default function ProductsPage() {
     const categoryId = formData.get("categoryId") as string;
 
     const totalStock = variants.reduce((sum, v) => sum + Number(v.stock), 0);
-    
-    // Filter and sanitize image URLs
     const finalImages = imageUrls.filter(url => url.trim() !== "");
     const defaultPlaceholder = `https://picsum.photos/seed/${Math.random()}/600/600`;
     const thumbnailUrl = finalImages[0] || defaultPlaceholder;
@@ -161,21 +189,13 @@ export default function ProductsPage() {
         }
       }
 
-      toast({
-        title: "Product added",
-        description: `${name} has been created successfully.`,
-      });
-      
+      toast({ title: "Product added", description: `${name} has been created.` });
       setIsAddDialogOpen(false);
       setVariants([{ color: "", size: "", stock: 0 }]);
       setImageUrls([""]);
       refreshData();
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to add product.",
-      });
+      toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
       setIsSubmitting(false);
     }
@@ -219,7 +239,7 @@ export default function ProductsPage() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" placeholder="Describe the product details..." required className="min-h-[100px]" />
+                  <Textarea id="description" name="description" placeholder="Describe the product..." required className="min-h-[100px]" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -228,19 +248,44 @@ export default function ProductsPage() {
                     <Input id="price" name="price" type="number" placeholder="2500" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="categoryId">Category</Label>
-                    <Select name="categoryId" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Category</Label>
+                    <div className="flex gap-2">
+                      <Select name="categoryId" required>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+                        <DialogTrigger asChild>
+                          <Button type="button" variant="outline" size="icon" className="shrink-0">
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader><DialogTitle>Add New Category</DialogTitle></DialogHeader>
+                          <form onSubmit={handleAddCategory} className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="catName">Category Name</Label>
+                              <Input id="catName" name="catName" placeholder="e.g. Accessories" required />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="catDesc">Description</Label>
+                              <Textarea id="catDesc" name="catDesc" placeholder="Brief description..." />
+                            </div>
+                            <DialogFooter>
+                              <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Category"}
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </div>
                 </div>
 
@@ -255,27 +300,15 @@ export default function ProductsPage() {
                     {imageUrls.map((url, index) => (
                       <div key={index} className="flex gap-2">
                         <div className="relative flex-1">
-                          <Input 
-                            value={url} 
-                            onChange={(e) => updateImageUrl(index, e.target.value)}
-                            placeholder="https://example.com/image.jpg"
-                          />
+                          <Input value={url} onChange={(e) => updateImageUrl(index, e.target.value)} placeholder="https://..." />
                           <ImageIcon className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         </div>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive shrink-0"
-                          onClick={() => removeImageUrlRow(index)}
-                          disabled={imageUrls.length <= 1}
-                        >
+                        <Button type="button" variant="ghost" size="icon" className="text-destructive shrink-0" onClick={() => removeImageUrlRow(index)} disabled={imageUrls.length <= 1}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">The first image will be used as the product thumbnail.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -285,58 +318,29 @@ export default function ProductsPage() {
                       <Plus className="w-3 h-3" /> Add Variant
                     </Button>
                   </div>
-                  
                   <div className="space-y-3">
                     {variants.map((v, index) => (
                       <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-4 rounded-lg border">
                         <div className="col-span-4 space-y-1.5">
                           <Label className="text-xs">Color</Label>
-                          <Input 
-                            value={v.color} 
-                            onChange={(e) => updateVariant(index, "color", e.target.value)}
-                            placeholder="Red"
-                            className="h-9 text-sm"
-                          />
+                          <Input value={v.color} onChange={(e) => updateVariant(index, "color", e.target.value)} placeholder="Red" className="h-9 text-sm" />
                         </div>
                         <div className="col-span-4 space-y-1.5">
                           <Label className="text-xs">Size</Label>
-                          <Input 
-                            value={v.size} 
-                            onChange={(e) => updateVariant(index, "size", e.target.value)}
-                            placeholder="M"
-                            className="h-9 text-sm"
-                            required
-                          />
+                          <Input value={v.size} onChange={(e) => updateVariant(index, "size", e.target.value)} placeholder="M" className="h-9 text-sm" required />
                         </div>
                         <div className="col-span-3 space-y-1.5">
                           <Label className="text-xs">Stock</Label>
-                          <Input 
-                            type="number"
-                            value={v.stock} 
-                            onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)}
-                            placeholder="0"
-                            className="h-9 text-sm"
-                            required
-                          />
+                          <Input type="number" value={v.stock} onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)} placeholder="0" className="h-9 text-sm" required />
                         </div>
                         <div className="col-span-1 pb-1">
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-9 w-9 text-destructive"
-                            onClick={() => removeVariantRow(index)}
-                            disabled={variants.length <= 1}
-                          >
+                          <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeVariantRow(index)} disabled={variants.length <= 1}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground italic">
-                    Total stock will be calculated automatically based on variants.
-                  </p>
                 </div>
                 
                 <DialogFooter>
@@ -351,9 +355,30 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 bg-background p-4 rounded-lg border shadow-sm">
-        <Search className="w-5 h-5 text-muted-foreground" />
-        <Input placeholder="Search by product name..." className="border-none shadow-none focus-visible:ring-0" />
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1 flex items-center gap-4 bg-background p-4 rounded-lg border shadow-sm">
+          <Search className="w-5 h-5 text-muted-foreground" />
+          <Input 
+            placeholder="Search by product name..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="border-none shadow-none focus-visible:ring-0" 
+          />
+        </div>
+        <div className="w-full md:w-[250px] flex items-center gap-2 bg-background p-4 rounded-lg border shadow-sm">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="border-none shadow-none focus:ring-0">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="bg-background rounded-lg border shadow-sm overflow-hidden">
@@ -362,7 +387,7 @@ export default function ProductsPage() {
             <TableRow>
               <TableHead className="w-[50px]">
                 <Checkbox 
-                  checked={selectedProducts.length === products.length && products.length > 0}
+                  checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
                   onCheckedChange={toggleSelectAll}
                 />
               </TableHead>
@@ -370,12 +395,11 @@ export default function ProductsPage() {
               <TableHead>Category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
+            {filteredProducts.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
                   <Checkbox 
@@ -395,19 +419,10 @@ export default function ProductsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{categories.find(c => c.id === product.categoryId)?.name || 'Uncategorized'}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-bold text-sm">Tk {product.basePrice}</span>
-                  </div>
-                </TableCell>
+                <TableCell><span className="font-bold text-sm">Tk {product.basePrice}</span></TableCell>
                 <TableCell>
                   <Badge variant={(product.stock || 0) > 10 ? "secondary" : "destructive"}>
                     {product.stock || 0} in stock
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={product.isFlashSale ? "default" : "outline"}>
-                    {product.isFlashSale ? "Flash Sale" : "Regular"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -426,36 +441,9 @@ export default function ProductsPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {products.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                  No products found. Add your first product to get started.
-                </TableCell>
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
-
-      <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Bulk Actions for {selectedProducts.length} Items</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Apply Discount (%)</label>
-              <div className="flex gap-2">
-                <Input type="number" placeholder="Enter percentage..." />
-                <Button>Apply</Button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsBulkDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
