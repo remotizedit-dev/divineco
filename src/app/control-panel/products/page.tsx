@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -151,7 +152,8 @@ export default function ProductsPage() {
     const name = formData.get("name") as string;
     const slug = formData.get("slug") as string;
     const description = formData.get("description") as string;
-    const basePrice = Number(formData.get("price"));
+    const costPrice = Number(formData.get("costPrice"));
+    const salesPrice = Number(formData.get("salesPrice"));
     const categoryId = formData.get("categoryId") as string;
 
     const totalStock = variants.reduce((sum, v) => sum + Number(v.stock), 0);
@@ -166,7 +168,8 @@ export default function ProductsPage() {
       name,
       slug,
       description,
-      basePrice,
+      costPrice,
+      salesPrice,
       categoryId,
       thumbnailUrl,
       imageUrls: images,
@@ -179,7 +182,6 @@ export default function ProductsPage() {
     if (editingProduct) {
       updateDocumentNonBlocking(doc(firestore, "products", editingProduct.id), productData);
       
-      // Update variants (simplified for MVP: overwrite existing or just keep as is)
       const variantsCol = collection(firestore, "products", editingProduct.id, "productVariants");
       for (const variant of variants) {
         if (variant.id) {
@@ -373,10 +375,17 @@ export default function ProductsPage() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Base Price (Tk)</Label>
-                    <Input id="price" name="price" type="number" defaultValue={editingProduct?.basePrice} placeholder="2500" required />
+                    <Label htmlFor="costPrice">Cost Price (Tk)</Label>
+                    <Input id="costPrice" name="costPrice" type="number" defaultValue={editingProduct?.costPrice} placeholder="1500" required />
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="salesPrice">Sales Price (Tk)</Label>
+                    <Input id="salesPrice" name="salesPrice" type="number" defaultValue={editingProduct?.salesPrice} placeholder="2500" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
                     <Label>Category</Label>
                     <Select name="categoryId" defaultValue={editingProduct?.categoryId} required>
                       <SelectTrigger>
@@ -389,17 +398,16 @@ export default function ProductsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="newArrival" 
-                    checked={isNewArrival} 
-                    onCheckedChange={(checked) => setIsNewArrival(checked as boolean)}
-                  />
-                  <Label htmlFor="newArrival" className="text-sm font-medium leading-none cursor-pointer">
-                    Mark as New Arrival
-                  </Label>
+                  <div className="flex items-center space-x-2 pt-8">
+                    <Checkbox 
+                      id="newArrival" 
+                      checked={isNewArrival} 
+                      onCheckedChange={(checked) => setIsNewArrival(checked as boolean)}
+                    />
+                    <Label htmlFor="newArrival" className="text-sm font-medium leading-none cursor-pointer">
+                      Mark as New Arrival
+                    </Label>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -484,7 +492,10 @@ export default function ProductsPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">{viewingProduct.name}</h3>
-                      <p className="text-sm text-muted-foreground">Tk {viewingProduct.basePrice}</p>
+                      <div className="flex flex-col gap-0.5">
+                         <p className="text-xs text-muted-foreground">Sales Price: <span className="font-bold text-foreground">Tk {viewingProduct.salesPrice}</span></p>
+                         <p className="text-xs text-muted-foreground">Cost Price: <span className="font-bold text-foreground">Tk {viewingProduct.costPrice}</span></p>
+                      </div>
                     </div>
                   </div>
 
@@ -568,7 +579,7 @@ export default function ProductsPage() {
               </TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Price</TableHead>
+              <TableHead>Sales Price</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -595,7 +606,7 @@ export default function ProductsPage() {
                   </div>
                 </TableCell>
                 <TableCell>{categories.find(c => c.id === product.categoryId)?.name || 'Uncategorized'}</TableCell>
-                <TableCell><span className="font-bold text-sm">Tk {product.basePrice}</span></TableCell>
+                <TableCell><span className="font-bold text-sm">Tk {product.salesPrice}</span></TableCell>
                 <TableCell>
                   <Badge variant={(product.stock || 0) > 10 ? "secondary" : "destructive"}>
                     {product.stock || 0} in stock

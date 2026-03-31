@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Category": {
@@ -64,13 +65,13 @@
           "type": "string",
           "description": "A URL-friendly unique identifier for the product."
         },
-        "basePrice": {
+        "costPrice": {
           "type": "number",
-          "description": "The original selling price of the product before any discounts."
+          "description": "The cost of obtaining the product (for internal profit tracking)."
         },
-        "discountedPrice": {
+        "salesPrice": {
           "type": "number",
-          "description": "The price after applying any discounts, if applicable."
+          "description": "The selling price of the product displayed to customers."
         },
         "flashSaleEndTime": {
           "type": "string",
@@ -119,7 +120,8 @@
         "name",
         "description",
         "slug",
-        "basePrice",
+        "costPrice",
+        "salesPrice",
         "imageUrls",
         "thumbnailUrl",
         "categoryId",
@@ -788,7 +790,6 @@
           ]
         }
       }
-    ],
-    "reasoning": "The proposed Firestore structure prioritizes secure, scalable, and debuggable access patterns by adhering strictly to the core design principles:\n\n1.  **Authorization Independence:** This is achieved by extensively denormalizing authorization-critical fields. For instance:\n    *   The `/orders/{orderId}` collection includes a `customerId` field. This allows both customers to query *their own* orders (`where('customerId', '==', request.auth.uid)`) and administrators to list *all* orders (QAP) without requiring a `get()` operation to a parent `customer` document in security rules. Rules can directly check `resource.data.customerId == request.auth.uid`.\n    *   Similarly, `/orders/{orderId}/orderItems/{orderItemId}` documents will denormalize the `customerId` from their parent order. This is crucial: even though `orderId` is in the path, checking ownership of an `orderItem` directly requires checking `customerId` within the `orderItem` document itself, eliminating a `get()` call to the parent `/orders/{orderId}` document.\n    *   `/reviews/{reviewId}` documents include both `productId` and `customerId`. This enables direct access checks for review submitters (`request.auth.uid == resource.data.customerId`) and efficient querying for product-specific reviews without complex rule lookups.\n\n2.  **QAPs (Rules are not Filters):** This design enables efficient `list` operations for various user types without relying on Firestore security rules to filter results. Instead, filtering is structural or query-based:\n    *   **Public Storefront Data:** Collections like `/categories`, `/products`, `/products/{productId}/productVariants`, and `/homepageBanners` are designed for public read access. Security rules simply allow `read` for authenticated or unauthenticated users, enabling direct fetching of all documents (or filtered by query, e.g., categoryId) without additional rule overhead.\n    *   **Customer-Specific Data:** The `/orders` collection, by containing `customerId`, allows customers to directly query `orders.where('customerId', '==', request.auth.uid)`. Security rules then *validate* this ownership rather than *filter* the list.\n    *   **Admin Data:** Collections are generally accessible to authenticated administrators, whose roles are determined by existence in `/roles_admin/{uid}`. This pattern allows admins to list all data in a collection (e.g., all orders, all customers) directly.\n    *   **Reviews:** Public users can list `/reviews` with a `where('isApproved', '==', true)` clause. The security rules will enforce that only approved reviews are readable by the public, acting as a validator, not a filter.\n\n3.  **Structural Segregation:** Data with different security postures are in separate collections or clearly delineated by fields:\n    *   Publicly visible content (products, categories, banners) is in global collections with public read access.\n    *   Customer-specific data (profiles, orders, order items) are protected by ownership.\n    *   Admin roles are separated into a dedicated `/roles_admin` collection.\n    *   Reviews, while stored globally, use an `isApproved` flag to segregate public vs. internal visibility, simplifying rules.\n\n4.  **Access Modeling:**\n    *   **Private Data:** `/customers/{customerId}` uses path-based ownership for customer profiles.\n    *   **Hierarchical Paths:** `/products/{productId}/productVariants/{variantId}` naturally groups variants under their parent product. `/orders/{orderId}/orderItems/{orderItemId}` groups items under their order, with denormalized `customerId` in `orderItem` for AI.\n    *   **Collaborative Data:** Not explicitly required for this e-commerce app beyond admin roles, but the `roles_admin` collection follows the "
+    ]
   }
 }
