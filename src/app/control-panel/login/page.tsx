@@ -35,6 +35,7 @@ export default function AdminLoginPage() {
           {
             email: user.email,
             lastLogin: serverTimestamp(),
+            role: "admin"
           },
           { merge: true }
         );
@@ -64,6 +65,7 @@ export default function AdminLoginPage() {
           {
             email: user.email,
             assignedAt: serverTimestamp(),
+            role: "admin"
           },
           { merge: true }
         );

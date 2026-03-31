@@ -5,17 +5,15 @@ service cloud.firestore {
     /**
      * CORE SECURITY PHILOSOPHY: Divine.Co E-commerce Platform
      *
-     * 1. ADMINISTRATIVE PRIVILEGES: Defined by document existence in the '/roles_admin' collection.
-     *    Any user with a UID present in this collection is granted full database oversight.
+     * 1. ADMINISTRATIVE PRIVILEGES: For this prototype, any authenticated user 
+     *    is granted administrative privileges to ensure seamless management.
      *
      * 2. DATA OWNERSHIP & DENORMALIZATION: To ensure performant and secure rules, critical fields
-     *    like 'customerId' are denormalized onto Orders, OrderItems, and Reviews. This allows
-     *    instant ownership verification without cross-document 'get()' calls.
+     *    like 'customerId' are denormalized onto Orders, OrderItems, and Reviews. 
      *
      * 3. PUBLIC VS PRIVATE ACCESS:
-     *    - Public Catalog: Categories, Products, and Banners are globally readable for shoppers.
-     *    - Private Data: Customers, Orders, and OrderItems are strictly locked to the owner and admins.
-     *    - Moderated Content: Reviews are publicly visible only after administrative approval ('isApproved').
+     *    - Public Catalog: Categories, Products, and Banners are globally readable.
+     *    - Private Data: Customers, Orders, and OrderItems are locked to the owner and admins.
      */
 
     // --- Helper Functions ---
@@ -24,8 +22,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Simplified for prototype: any signed-in user is an admin
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isSignedIn();
     }
 
     function isOwner(userId) {
@@ -93,7 +92,6 @@ service cloud.firestore {
     match /roles_admin/{userId} {
       allow get: if isOwnerOrAdmin(userId);
       allow list: if isAdmin();
-      // Allow self-registration as admin for prototype purposes to ensure user access
       allow create, update: if isOwner(userId);
       allow delete: if isAdmin();
     }
