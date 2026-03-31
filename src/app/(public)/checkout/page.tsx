@@ -62,8 +62,13 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     
+    // Generate a simple human-readable sequence identifier
+    const timestampId = Date.now().toString().slice(-4);
+    const orderNum = `ID-0101-${timestampId}`;
+
     const orderData = {
       customerId: "anonymous",
+      orderNumber: orderNum,
       customerName: formData.fullName,
       customerPhone: formData.phone,
       customerAddress: formData.address,
@@ -73,6 +78,7 @@ export default function CheckoutPage() {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
+        image: item.image,
         variant: item.variant || null
       })),
       subtotal: total,
@@ -104,6 +110,11 @@ export default function CheckoutPage() {
     } catch (err) {
       console.error("Order failed:", err);
       setIsSubmitting(false);
+      toast({
+        variant: "destructive",
+        title: "Order Failed",
+        description: "Something went wrong while placing your order. Please try again."
+      });
     }
   };
 
@@ -112,9 +123,13 @@ export default function CheckoutPage() {
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-          <h2 className="text-2xl font-headline font-bold mb-4">Your bag is empty</h2>
-          <Button asChild variant="outline" className="rounded-full">
-            <Link href="/products">Go Shopping</Link>
+          <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
+            <ShoppingBag className="w-12 h-12 text-muted-foreground" />
+          </div>
+          <h2 className="text-3xl font-headline font-bold mb-4">Your bag is empty</h2>
+          <p className="text-muted-foreground mb-8 max-w-md">Looks like you haven't added any elegant pieces to your collection yet.</p>
+          <Button asChild size="lg" className="rounded-full px-10">
+            <Link href="/products">Continue Shopping</Link>
           </Button>
         </div>
       </div>
@@ -126,36 +141,43 @@ export default function CheckoutPage() {
       <Navbar />
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
-          <h1 className="font-headline text-3xl font-bold mb-8">Checkout</h1>
+          <div className="flex items-center gap-4 mb-8">
+            <Link href="/" className="w-10 h-10 rounded-full bg-white flex items-center justify-center border shadow-sm hover:bg-primary hover:text-white transition-colors">
+              <ArrowRight className="w-5 h-5 rotate-180" />
+            </Link>
+            <h1 className="font-headline text-4xl font-bold">Checkout</h1>
+          </div>
           
           <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Delivery Info */}
             <div className="lg:col-span-7 space-y-6">
-              <Card className="border-none shadow-sm">
-                <CardHeader>
+              <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
+                <CardHeader className="bg-white border-b">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Truck className="w-5 h-5 text-primary" /> Delivery Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="space-y-6 pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
+                      <Label htmlFor="fullName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
                       <Input 
                         id="fullName" 
                         placeholder="e.g. Jane Doe" 
                         required 
+                        className="h-12 bg-muted/30 border-none focus-visible:ring-1"
                         value={formData.fullName}
                         onChange={(e) => setFormData({...formData, fullName: e.target.value})}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone Number</Label>
                       <Input 
                         id="phone" 
                         type="tel" 
                         placeholder="017XXXXXXXX" 
                         required 
+                        className="h-12 bg-muted/30 border-none focus-visible:ring-1"
                         value={formData.phone}
                         onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       />
@@ -163,131 +185,136 @@ export default function CheckoutPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="address">Detailed Address</Label>
+                    <Label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Detailed Address</Label>
                     <Textarea 
                       id="address" 
-                      placeholder="Street address, house, apartment..." 
+                      placeholder="Street address, house, apartment, area..." 
                       required 
-                      className="min-h-[100px]"
+                      className="min-h-[120px] bg-muted/30 border-none focus-visible:ring-1 resize-none"
                       value={formData.address}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
                     />
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Delivery Region</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Delivery Region</Label>
                     <RadioGroup 
                       defaultValue="Inside Dhaka" 
                       onValueChange={(val) => setFormData({...formData, deliveryRegion: val})}
                       className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                        <RadioGroupItem value="Inside Dhaka" id="r1" />
+                      <div className={`flex items-center space-x-2 border-2 p-4 rounded-xl cursor-pointer transition-all ${formData.deliveryRegion === 'Inside Dhaka' ? 'border-primary bg-primary/5' : 'border-transparent bg-white shadow-sm hover:bg-muted/50'}`}>
+                        <RadioGroupItem value="Inside Dhaka" id="r1" className="sr-only" />
                         <Label htmlFor="r1" className="flex-1 cursor-pointer">
-                          <span className="font-bold">Inside Dhaka</span>
-                          <span className="block text-xs text-muted-foreground">Tk 80 (24-48 hours)</span>
+                          <span className="font-bold block">Inside Dhaka</span>
+                          <span className="block text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Tk 80 • 24-48 Hours</span>
                         </Label>
+                        {formData.deliveryRegion === 'Inside Dhaka' && <Check className="w-5 h-5 text-primary" />}
                       </div>
-                      <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                        <RadioGroupItem value="Outside Dhaka" id="r2" />
+                      <div className={`flex items-center space-x-2 border-2 p-4 rounded-xl cursor-pointer transition-all ${formData.deliveryRegion === 'Outside Dhaka' ? 'border-primary bg-primary/5' : 'border-transparent bg-white shadow-sm hover:bg-muted/50'}`}>
+                        <RadioGroupItem value="Outside Dhaka" id="r2" className="sr-only" />
                         <Label htmlFor="r2" className="flex-1 cursor-pointer">
-                          <span className="font-bold">Outside Dhaka</span>
-                          <span className="block text-xs text-muted-foreground">Tk 150 (3-5 days)</span>
+                          <span className="font-bold block">Outside Dhaka</span>
+                          <span className="block text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Tk 150 • 3-5 Days</span>
                         </Label>
+                        {formData.deliveryRegion === 'Outside Dhaka' && <Check className="w-5 h-5 text-primary" />}
                       </div>
                     </RadioGroup>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm">
-                <CardHeader>
+              <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
+                <CardHeader className="bg-white border-b">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Ticket className="w-5 h-5 text-primary" /> Coupon Code
+                    <Ticket className="w-5 h-5 text-primary" /> Promo Code
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input 
-                        placeholder="Enter coupon code" 
-                        className="uppercase" 
+                        placeholder="Enter code" 
+                        className="uppercase h-12 bg-muted/30 border-none focus-visible:ring-1 font-bold tracking-widest" 
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
                         disabled={!!appliedCoupon}
                       />
                       {appliedCoupon && (
-                        <Check className="absolute right-3 top-2.5 h-4 w-4 text-green-500" />
+                        <Check className="absolute right-3 top-3.5 h-5 w-5 text-green-500" />
                       )}
                     </div>
                     {appliedCoupon ? (
-                      <Button variant="outline" type="button" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}>
+                      <Button variant="outline" type="button" className="h-12 rounded-xl" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}>
                         Remove
                       </Button>
                     ) : (
-                      <Button variant="secondary" type="button" onClick={handleApplyCoupon} disabled={isValidatingCoupon || !couponCode}>
+                      <Button variant="secondary" type="button" className="h-12 px-8 rounded-xl" onClick={handleApplyCoupon} disabled={isValidatingCoupon || !couponCode}>
                         {isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
                       </Button>
                     )}
                   </div>
-                  {appliedCoupon && (
-                    <p className="text-xs text-green-600 font-bold mt-2">
-                      Coupon "{appliedCoupon.code}" applied successfully!
-                    </p>
-                  )}
                 </CardContent>
               </Card>
             </div>
 
             {/* Order Summary */}
             <div className="lg:col-span-5">
-              <Card className="border-none shadow-sm sticky top-24">
-                <CardHeader className="border-b">
-                  <CardTitle className="text-lg">Order Summary</CardTitle>
+              <Card className="border-none shadow-xl rounded-3xl sticky top-24 overflow-hidden bg-white">
+                <CardHeader className="border-b bg-muted/10 p-8">
+                  <CardTitle className="text-xl font-headline font-bold">Your Bag Summary</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="max-h-[300px] overflow-y-auto p-6 space-y-4">
+                  <div className="max-h-[350px] overflow-y-auto p-8 space-y-6">
                     {items.map((item, idx) => (
-                      <div key={idx} className="flex gap-3">
-                        <div className="w-12 h-16 relative rounded overflow-hidden border bg-muted flex-shrink-0">
+                      <div key={idx} className="flex gap-4">
+                        <div className="w-16 h-20 relative rounded-xl overflow-hidden border bg-muted flex-shrink-0 shadow-sm">
                           <Image src={item.image} alt={item.name} fill className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-sm truncate">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
+                            {item.variant ? `${item.variant.color} / ${item.variant.size}` : "One Size"}
+                          </p>
+                          <p className="text-xs font-medium text-primary mt-1">Qty: {item.quantity}</p>
                         </div>
-                        <p className="font-bold text-sm">Tk {item.price * item.quantity}</p>
+                        <div className="text-right">
+                          <p className="font-bold text-sm">Tk {item.price * item.quantity}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                   
-                  <div className="p-6 pt-0 border-t space-y-3">
-                    <div className="flex justify-between text-sm text-muted-foreground mt-4">
+                  <div className="p-8 pt-4 border-t space-y-3 bg-muted/5">
+                    <div className="flex justify-between text-sm text-muted-foreground">
                       <span>Subtotal</span>
-                      <span>Tk {total}</span>
+                      <span className="font-bold text-foreground">Tk {total}</span>
                     </div>
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Shipping ({formData.deliveryRegion})</span>
-                      <span>Tk {shippingCost}</span>
+                      <span>Shipping Fee</span>
+                      <span className="font-bold text-foreground">Tk {shippingCost}</span>
                     </div>
                     {discountAmount > 0 && (
-                      <div className="flex justify-between text-sm text-primary font-bold">
-                        <span>Discount ({appliedCoupon.code})</span>
+                      <div className="flex justify-between text-sm text-green-600 font-bold bg-green-50 p-2 rounded-lg">
+                        <span className="flex items-center gap-1"><Ticket className="w-3 h-3" /> Discount ({appliedCoupon.code})</span>
                         <span>-Tk {discountAmount}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-lg font-bold pt-4 border-t">
+                    <div className="flex justify-between text-2xl font-bold pt-6 border-t border-muted-foreground/10">
                       <span>Total Payable</span>
                       <span className="text-primary">Tk {finalTotal}</span>
                     </div>
+                    <p className="text-[10px] text-muted-foreground text-center uppercase tracking-widest pt-4">
+                      Payment Method: Cash on Delivery
+                    </p>
                   </div>
                 </CardContent>
-                <CardFooter className="p-6">
-                  <Button type="submit" size="lg" className="w-full h-14 text-lg rounded-full gap-2" disabled={isSubmitting}>
+                <CardFooter className="p-8">
+                  <Button type="submit" size="lg" className="w-full h-16 text-xl rounded-2xl gap-2 shadow-lg shadow-primary/20" disabled={isSubmitting}>
                     {isSubmitting ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-6 h-6 animate-spin" />
                     ) : (
-                      <>Complete Order <ArrowRight className="w-5 h-5" /></>
+                      <>Confirm Order <ArrowRight className="w-5 h-5" /></>
                     )}
                   </Button>
                 </CardFooter>
