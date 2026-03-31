@@ -2,77 +2,105 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart } from "lucide-react";
+import { Button } from "@/components/ui/badge";
+import { ShoppingCart, Clock } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 import { useState } from "react";
 import { AddToCartModal } from "./AddToCartModal";
+import { CountdownTimer } from "@/components/ui/countdown-timer";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: any;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const addItem = useCartStore((state) => state.addItem);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const addItem = useCartStore((state) => state.addItem);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
     addItem({
       id: product.id,
       name: product.name,
       price: product.salesPrice,
-      image: product.thumbnailUrl,
+      image: product.thumbnailUrl || product.imageUrls?.[0],
       quantity: 1,
     });
     setIsModalOpen(true);
   };
 
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.salesPrice;
+  const showTimer = product.isFlashSale && product.flashSaleEndTime;
 
   return (
     <>
-      <div className="group bg-white rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 border border-primary/5">
+      <div className="group flex flex-col h-full bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-primary/10">
         <Link href={`/product/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-muted">
           <Image 
-            src={product.thumbnailUrl || 'https://picsum.photos/seed/placeholder/400/500'} 
+            src={product.thumbnailUrl || product.imageUrls?.[0] || 'https://picsum.photos/seed/placeholder/400/500'} 
             alt={product.name} 
             fill 
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 768px) 50vw, 25vw"
           />
-          <div className="absolute top-4 left-4 flex flex-col gap-2">
-            {product.tags?.includes("New Arrival") && (
-              <Badge className="bg-white/90 text-primary border-none text-[10px] font-bold uppercase tracking-widest px-3 py-1 backdrop-blur-sm">New</Badge>
-            )}
-            {hasDiscount && (
-              <Badge className="bg-primary text-white border-none text-[10px] font-bold uppercase tracking-widest px-3 py-1">Sale</Badge>
-            )}
-          </div>
-        </Link>
-        
-        <div className="p-5 flex flex-col items-center text-center">
-          <Link href={`/product/${product.slug}`} className="block w-full">
-            <h3 className="font-headline font-bold text-lg mb-2 text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-              {product.name}
-            </h3>
-          </Link>
           
-          <div className="flex items-center gap-3 mb-5">
-            <span className="text-xl font-bold text-primary">Tk {product.salesPrice}</span>
+          {/* Badge Overlays */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+            {product.tags?.includes("New Arrival") && (
+              <span className="bg-white/90 backdrop-blur-sm text-foreground text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm">
+                New
+              </span>
+            )}
             {hasDiscount && (
-              <span className="text-sm text-muted-foreground line-through opacity-50">Tk {product.compareAtPrice}</span>
+              <span className="bg-primary text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-md">
+                Sale
+              </span>
             )}
           </div>
 
-          <Button 
-            onClick={handleAddToCart}
-            className="w-full h-12 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/10"
-          >
-            Order Now
-          </Button>
+          {/* Floating Timer */}
+          {showTimer && (
+            <div className="absolute bottom-3 left-3 right-3 z-10">
+              <div className="bg-white/80 backdrop-blur-md rounded-xl p-2 flex items-center justify-between shadow-lg border border-white/20">
+                <div className="flex items-center gap-1.5 text-primary">
+                  <Clock className="w-3 h-3" />
+                  <span className="text-[8px] font-bold uppercase tracking-wider">Ends:</span>
+                </div>
+                <CountdownTimer 
+                  targetDate={new Date(product.flashSaleEndTime)} 
+                  className="bg-transparent px-0 py-0 text-[10px] text-primary" 
+                />
+              </div>
+            </div>
+          )}
+        </Link>
+
+        <div className="p-4 flex flex-col flex-1">
+          <Link href={`/product/${product.slug}`} className="mb-2">
+            <h3 className="font-bold text-sm md:text-base line-clamp-1 group-hover:text-primary transition-colors">
+              {product.name}
+            </h3>
+          </Link>
+
+          <div className="mt-auto space-y-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-bold text-primary">Tk {product.salesPrice}</span>
+              {hasDiscount && (
+                <span className="text-xs text-muted-foreground line-through opacity-50">Tk {product.compareAtPrice}</span>
+              )}
+            </div>
+
+            <button 
+              onClick={handleAddToCart}
+              className="w-full bg-foreground text-white hover:bg-primary transition-colors h-11 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-sm"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              Order Now
+            </button>
+          </div>
         </div>
       </div>
 
@@ -81,7 +109,7 @@ export function ProductCard({ product }: ProductCardProps) {
         onClose={() => setIsModalOpen(false)} 
         productName={product.name}
         productPrice={product.salesPrice}
-        productImage={product.thumbnailUrl}
+        productImage={product.thumbnailUrl || product.imageUrls?.[0]}
         quantity={1}
       />
     </>
