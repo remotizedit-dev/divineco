@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useEffect } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut, Loader2, Image as ImageIcon } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Settings, LogOut, Loader2, Image as ImageIcon, Ticket } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@/firebase";
@@ -13,6 +14,7 @@ const navigation = [
   { name: 'Orders', href: '/control-panel/orders', icon: ShoppingCart },
   { name: 'Products', href: '/control-panel/products', icon: Package },
   { name: 'Home Banners', href: '/control-panel/banners', icon: ImageIcon },
+  { name: 'Coupons', href: '/control-panel/coupons', icon: Ticket },
   { name: 'Settings', href: '/control-panel/settings', icon: Settings },
 ];
 

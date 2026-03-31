@@ -10,19 +10,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, ArrowRight, ShieldCheck, Truck } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Truck, Ticket, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp, doc, increment } from "firebase/firestore";
+import { validateCoupon } from "@/lib/api";
 import Image from "next/image";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCartStore();
   const total = getTotal();
   const router = useRouter();
   const firestore = useFirestore();
+  const { toast } = useToast();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
@@ -31,7 +38,23 @@ export default function CheckoutPage() {
   });
 
   const shippingCost = formData.deliveryRegion === "Inside Dhaka" ? 80 : 150;
-  const finalTotal = total + shippingCost;
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const finalTotal = total + shippingCost - discountAmount;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode) return;
+    setIsValidatingCoupon(true);
+    try {
+      const result = await validateCoupon(couponCode, total);
+      setAppliedCoupon(result);
+      toast({ title: "Coupon Applied", description: `You saved Tk ${result.discountAmount}!` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Invalid Coupon", description: err.message });
+      setAppliedCoupon(null);
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +63,7 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
     
     const orderData = {
-      customerId: "anonymous", // Simple for prototype
+      customerId: "anonymous",
       customerName: formData.fullName,
       customerPhone: formData.phone,
       customerAddress: formData.address,
@@ -54,6 +77,8 @@ export default function CheckoutPage() {
       })),
       subtotal: total,
       shippingCost: shippingCost,
+      discount: discountAmount,
+      couponCodeUsed: appliedCoupon?.code || null,
       total: finalTotal,
       status: "Pending",
       paymentMethod: "Cash on Delivery",
@@ -64,6 +89,14 @@ export default function CheckoutPage() {
 
     try {
       const orderRef = await addDocumentNonBlocking(collection(firestore, "orders"), orderData);
+      
+      // Update coupon usage count if applied
+      if (appliedCoupon) {
+        updateDocumentNonBlocking(doc(firestore, "coupons", appliedCoupon.id), {
+          usesCount: increment(1)
+        });
+      }
+
       if (orderRef) {
         clearCart();
         router.push(`/order-confirmation/${orderRef.id}`);
@@ -167,15 +200,41 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-sm bg-primary/5 border-primary/20">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className="w-6 h-6 text-primary" />
-                    <div>
-                      <p className="font-bold text-sm">Safe & Secure Payment</p>
-                      <p className="text-xs text-muted-foreground">Currently accepting Cash on Delivery only. Pay when you receive your elegant pieces.</p>
+              <Card className="border-none shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Ticket className="w-5 h-5 text-primary" /> Coupon Code
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input 
+                        placeholder="Enter coupon code" 
+                        className="uppercase" 
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        disabled={!!appliedCoupon}
+                      />
+                      {appliedCoupon && (
+                        <Check className="absolute right-3 top-2.5 h-4 w-4 text-green-500" />
+                      )}
                     </div>
+                    {appliedCoupon ? (
+                      <Button variant="outline" type="button" onClick={() => { setAppliedCoupon(null); setCouponCode(""); }}>
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" type="button" onClick={handleApplyCoupon} disabled={isValidatingCoupon || !couponCode}>
+                        {isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                      </Button>
+                    )}
                   </div>
+                  {appliedCoupon && (
+                    <p className="text-xs text-green-600 font-bold mt-2">
+                      Coupon "{appliedCoupon.code}" applied successfully!
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -211,6 +270,12 @@ export default function CheckoutPage() {
                       <span>Shipping ({formData.deliveryRegion})</span>
                       <span>Tk {shippingCost}</span>
                     </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-sm text-primary font-bold">
+                        <span>Discount ({appliedCoupon.code})</span>
+                        <span>-Tk {discountAmount}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-lg font-bold pt-4 border-t">
                       <span>Total Payable</span>
                       <span className="text-primary">Tk {finalTotal}</span>
@@ -234,5 +299,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-
-import Link from "next/link";

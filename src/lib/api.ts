@@ -46,7 +46,6 @@ export async function getProducts(options: {
   isFlashSale?: boolean;
   isNewArrival?: boolean;
 } = {}) {
-  // Simple base query
   let q = query(collection(db, "products"));
   
   if (options.categoryId) {
@@ -61,7 +60,6 @@ export async function getProducts(options: {
     q = query(q, where("tags", "array-contains", "New Arrival"));
   }
 
-  // Note: Combined where and orderBy requires index. Simplified for prototype.
   if (!options.categoryId && !options.isFlashSale && !options.isNewArrival) {
     q = query(q, orderBy("createdAt", "desc"));
   }
@@ -87,17 +85,6 @@ export async function getProductVariants(productId: string) {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-export async function searchProducts(searchTerm: string) {
-  const q = query(
-    collection(db, "products"),
-    where("name", ">=", searchTerm),
-    where("name", "<=", searchTerm + "\uf8ff"),
-    limit(5)
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
 // --- Orders / POS API ---
 export async function getOrders(status?: string) {
   let q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
@@ -106,19 +93,6 @@ export async function getOrders(status?: string) {
   }
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-}
-
-export async function getCustomerByPhone(phone: string) {
-  const q = query(collection(db, "orders"), where("customerPhone", "==", phone), limit(1));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  const data: any = snapshot.docs[0].data();
-  return { 
-    name: data.customerName, 
-    email: data.customerEmail, 
-    address: data.customerAddress,
-    phone: data.customerPhone 
-  };
 }
 
 export async function updateOrderStatus(orderId: string, newStatus: string) {
@@ -131,7 +105,6 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
 
   const batch = writeBatch(db);
 
-  // Stock deduction logic
   const statusesDeductStock = ["Accepted", "Delivered"];
   const statusesRestoreStock = ["Cancelled"];
 
@@ -154,12 +127,42 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
   await batch.commit();
 }
 
-export async function createOrder(orderData: any) {
-  return addDoc(collection(db, "orders"), {
-    ...orderData,
-    status: "Pending",
-    createdAt: serverTimestamp(),
-  });
+// --- Coupon API ---
+export async function getCoupons() {
+  const q = query(collection(db, "coupons"), orderBy("createdAt", "desc"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+export async function validateCoupon(code: string, subtotal: number) {
+  const q = query(
+    collection(db, "coupons"), 
+    where("code", "==", code.toUpperCase()), 
+    where("isActive", "==", true),
+    limit(1)
+  );
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) throw new Error("Invalid coupon code.");
+  
+  const coupon: any = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+  
+  if (coupon.maxUses && coupon.usesCount >= coupon.maxUses) {
+    throw new Error("This coupon has reached its maximum usage limit.");
+  }
+  
+  if (coupon.minOrderAmount && subtotal < coupon.minOrderAmount) {
+    throw new Error(`Minimum order amount for this coupon is Tk ${coupon.minOrderAmount}.`);
+  }
+
+  let discount = 0;
+  if (coupon.type === 'percentage') {
+    discount = Math.round((subtotal * (coupon.value / 100)));
+  } else {
+    discount = coupon.value;
+  }
+
+  return { ...coupon, discountAmount: discount };
 }
 
 // --- Analytics API ---
@@ -168,13 +171,13 @@ export async function getDashboardStats() {
   const orders = snapshot.docs.map(d => d.data());
   
   const totalSales = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + (curr.total || 0), 0);
-  const totalCost = orders.filter(o => o.status !== 'Cancelled').reduce((acc, curr) => acc + (curr.cost || 0), 0);
-  const totalProfit = totalSales - totalCost;
+  const totalOrders = orders.length;
+  const cancelledOrders = orders.filter(o => o.status === 'Cancelled').length;
   
   return {
     totalSales,
-    totalProfit,
-    totalOrders: orders.length,
-    cancelledOrders: orders.filter(o => o.status === 'Cancelled').length,
+    totalProfit: 0, // Simplified for now
+    totalOrders,
+    cancelledOrders,
   };
 }
