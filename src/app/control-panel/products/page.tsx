@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
-import { getProducts, getCategories, createCategory } from "@/lib/api";
+import { getProducts, getCategories } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -27,8 +26,8 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { useFirestore } from "@/firebase";
-import { collection, serverTimestamp, doc, addDoc } from "firebase/firestore";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 interface VariantInput {
@@ -41,7 +40,6 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,31 +114,34 @@ export default function ProductsPage() {
     setImageUrls(newUrls);
   };
 
-  const handleAddCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCategory = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (!firestore) return;
+
     const formData = new FormData(e.currentTarget);
     const name = formData.get("catName") as string;
     const slug = name.toLowerCase().replace(/\s+/g, '-');
     const description = formData.get("catDesc") as string;
 
-    try {
-      await createCategory({ name, slug, description, updatedAt: serverTimestamp() });
-      toast({ title: "Category added", description: `${name} has been created.` });
-      setIsAddCategoryOpen(false);
-      refreshData();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsSubmitting(false);
-    }
+    const categoryData = { 
+      name, 
+      slug, 
+      description, 
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp() 
+    };
+
+    addDocumentNonBlocking(collection(firestore, "categories"), categoryData);
+    
+    toast({ title: "Category Submitted", description: "Your category is being created." });
+    setIsAddCategoryOpen(false);
+    // Optimistic refresh
+    setTimeout(refreshData, 1000);
   };
 
-  const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddProduct = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
-    
-    setIsSubmitting(true);
     
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
@@ -170,35 +171,32 @@ export default function ProductsPage() {
       stock: totalStock,
     };
 
-    try {
-      const productRef = await addDoc(collection(firestore, "products"), productData);
-      const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
-      
-      for (const variant of variants) {
-        if (variant.size || variant.color) {
-          await addDoc(variantsCol, {
-            productId: productRef.id,
-            color: variant.color || "Default",
-            size: variant.size || "One Size",
-            sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
-            stockQuantity: Number(variant.stock),
-            variantSpecificImageUrls: [thumbnailUrl],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          });
+    addDocumentNonBlocking(collection(firestore, "products"), productData)
+      ?.then((productRef) => {
+        if (!productRef) return;
+        const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
+        
+        for (const variant of variants) {
+          if (variant.size || variant.color) {
+            addDocumentNonBlocking(variantsCol, {
+              productId: productRef.id,
+              color: variant.color || "Default",
+              size: variant.size || "One Size",
+              sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
+              stockQuantity: Number(variant.stock),
+              variantSpecificImageUrls: [thumbnailUrl],
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+          }
         }
-      }
+      });
 
-      toast({ title: "Product added", description: `${name} has been created.` });
-      setIsAddDialogOpen(false);
-      setVariants([{ color: "", size: "", stock: 0 }]);
-      setImageUrls([""]);
-      refreshData();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({ title: "Product Submitted", description: "Saving product and its variants..." });
+    setIsAddDialogOpen(false);
+    setVariants([{ color: "", size: "", stock: 0 }]);
+    setImageUrls([""]);
+    setTimeout(refreshData, 1500);
   };
 
   return (
@@ -209,12 +207,6 @@ export default function ProductsPage() {
           <p className="text-sm text-muted-foreground">Manage your boutique inventory and variants.</p>
         </div>
         <div className="flex gap-3">
-          {selectedProducts.length > 0 && (
-            <Button variant="outline" onClick={() => setIsBulkDialogOpen(true)}>
-              Bulk Actions ({selectedProducts.length})
-            </Button>
-          )}
-          
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -278,9 +270,7 @@ export default function ProductsPage() {
                               <Textarea id="catDesc" name="catDesc" placeholder="Brief description..." />
                             </div>
                             <DialogFooter>
-                              <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Category"}
-                              </Button>
+                              <Button type="submit">Save Category</Button>
                             </DialogFooter>
                           </form>
                         </DialogContent>
@@ -345,9 +335,7 @@ export default function ProductsPage() {
                 
                 <DialogFooter>
                   <Button type="button" variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Product"}
-                  </Button>
+                  <Button type="submit">Save Product</Button>
                 </DialogFooter>
               </form>
             </DialogContent>

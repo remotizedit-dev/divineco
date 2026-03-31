@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth, useFirestore, setDocumentNonBlocking } from "@/firebase";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -28,7 +27,17 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     signInWithEmailAndPassword(auth, email, password)
-      .then(() => {
+      .then((userCredential) => {
+        const user = userCredential.user;
+        // Ensure admin role exists upon login
+        setDocumentNonBlocking(
+          doc(db, "roles_admin", user.uid),
+          {
+            email: user.email,
+            lastLogin: serverTimestamp(),
+          },
+          { merge: true }
+        );
         router.push("/control-panel");
       })
       .catch((error) => {
@@ -46,23 +55,22 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     createUserWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
+      .then((userCredential) => {
         const user = userCredential.user;
         
-        // Attempt to seed the admin role for the first user
-        // Note: This might fail depending on security rules if they are already strict
-        try {
-          await setDoc(doc(db, "roles_admin", user.uid), {
+        // Seed the admin role for the user
+        setDocumentNonBlocking(
+          doc(db, "roles_admin", user.uid),
+          {
             email: user.email,
             assignedAt: serverTimestamp(),
-          });
-        } catch (e) {
-          console.warn("Could not auto-assign admin role. You may need to add this UID to 'roles_admin' in Firebase Console.", user.uid);
-        }
+          },
+          { merge: true }
+        );
 
         toast({
           title: "Account Created",
-          description: "Welcome! You have been registered and logged in.",
+          description: "Welcome! You have been registered as an administrator.",
         });
         router.push("/control-panel");
       })
@@ -157,7 +165,7 @@ export default function AdminLoginPage() {
                   )}
                 </Button>
                 <p className="text-[10px] text-center text-muted-foreground">
-                  By signing up, you will create a new administrator profile for this boutique.
+                  By signing up, you will create a new administrator profile with full access.
                 </p>
               </CardFooter>
             </form>
