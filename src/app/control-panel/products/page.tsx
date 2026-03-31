@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, MoreHorizontal, Edit, Trash, Copy, Loader2 } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Edit, Trash, Copy, Loader2, Trash2 } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -29,8 +29,13 @@ import {
 } from "@/components/ui/dialog";
 import { useFirestore } from "@/firebase";
 import { collection, serverTimestamp, doc, addDoc } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
+
+interface VariantInput {
+  color: string;
+  size: string;
+  stock: number;
+}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -39,6 +44,11 @@ export default function ProductsPage() {
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State for dynamic variants
+  const [variants, setVariants] = useState<VariantInput[]>([
+    { color: "", size: "", stock: 0 }
+  ]);
   
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -69,6 +79,21 @@ export default function ProductsPage() {
     );
   };
 
+  const addVariantRow = () => {
+    setVariants([...variants, { color: "", size: "", stock: 0 }]);
+  };
+
+  const removeVariantRow = (index: number) => {
+    if (variants.length <= 1) return;
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
+  const updateVariant = (index: number, field: keyof VariantInput, value: string | number) => {
+    const newVariants = [...variants];
+    newVariants[index] = { ...newVariants[index], [field]: value };
+    setVariants(newVariants);
+  };
+
   const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore) return;
@@ -81,12 +106,8 @@ export default function ProductsPage() {
     const description = formData.get("description") as string;
     const basePrice = Number(formData.get("price"));
     const categoryId = formData.get("categoryId") as string;
-    const colorsInput = formData.get("colors") as string;
-    const sizesInput = formData.get("sizes") as string;
-    const stockQuantity = Number(formData.get("stock") || 0);
 
-    const colors = colorsInput ? colorsInput.split(",").map(c => c.trim()).filter(Boolean) : [];
-    const sizes = sizesInput ? sizesInput.split(",").map(s => s.trim()).filter(Boolean) : [];
+    const totalStock = variants.reduce((sum, v) => sum + Number(v.stock), 0);
 
     const productData = {
       name,
@@ -100,44 +121,38 @@ export default function ProductsPage() {
       tags: ["New Arrival"],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      stock: stockQuantity, // Add a top-level stock for easy viewing
+      stock: totalStock,
     };
 
     try {
       // Create the product document first
       const productRef = await addDoc(collection(firestore, "products"), productData);
       
-      // If variants are provided, create them in the subcollection
-      if (colors.length > 0 || sizes.length > 0) {
-        const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
-        
-        // Simple strategy: Create a variant for each color/size combination if both exist, 
-        // or just for colors/sizes if only one exists.
-        const colorList = colors.length > 0 ? colors : ["Default"];
-        const sizeList = sizes.length > 0 ? sizes : ["One Size"];
-
-        for (const color of colorList) {
-          for (const size of sizeList) {
-            await addDoc(variantsCol, {
-              productId: productRef.id,
-              color,
-              size,
-              sku: `${slug}-${color.substring(0, 3)}-${size}`.toUpperCase(),
-              stockQuantity: Math.floor(stockQuantity / (colorList.length * sizeList.length)),
-              variantSpecificImageUrls: [productData.thumbnailUrl],
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-            });
-          }
+      // Create variants in the subcollection
+      const variantsCol = collection(firestore, "products", productRef.id, "productVariants");
+      
+      for (const variant of variants) {
+        if (variant.size || variant.color) {
+          await addDoc(variantsCol, {
+            productId: productRef.id,
+            color: variant.color || "Default",
+            size: variant.size || "One Size",
+            sku: `${slug}-${(variant.color || "DEF").substring(0, 3)}-${variant.size || "OS"}`.toUpperCase(),
+            stockQuantity: Number(variant.stock),
+            variantSpecificImageUrls: [productData.thumbnailUrl],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
         }
       }
 
       toast({
         title: "Product added",
-        description: `${name} and its variants have been created.`,
+        description: `${name} has been created with ${variants.length} variant(s).`,
       });
       
       setIsAddDialogOpen(false);
+      setVariants([{ color: "", size: "", stock: 0 }]); // Reset variants
       refreshData();
     } catch (error: any) {
       toast({
@@ -170,11 +185,11 @@ export default function ProductsPage() {
                 <Plus className="w-4 h-4" /> Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddProduct} className="space-y-4 py-4">
+              <form onSubmit={handleAddProduct} className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Product Name</Label>
@@ -213,20 +228,65 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="colors">Colors (Comma separated)</Label>
-                    <Input id="colors" name="colors" placeholder="Red, Blue, Green" />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">Product Variants</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addVariantRow} className="gap-1">
+                      <Plus className="w-3 h-3" /> Add Variant
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sizes">Sizes (Comma separated)</Label>
-                    <Input id="sizes" name="sizes" placeholder="S, M, L, XL" />
+                  
+                  <div className="space-y-3">
+                    {variants.map((v, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-3 items-end bg-muted/30 p-3 rounded-lg border">
+                        <div className="col-span-4 space-y-1.5">
+                          <Label className="text-xs">Color</Label>
+                          <Input 
+                            value={v.color} 
+                            onChange={(e) => updateVariant(index, "color", e.target.value)}
+                            placeholder="Red"
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                        <div className="col-span-4 space-y-1.5">
+                          <Label className="text-xs">Size</Label>
+                          <Input 
+                            value={v.size} 
+                            onChange={(e) => updateVariant(index, "size", e.target.value)}
+                            placeholder="M"
+                            className="h-8 text-sm"
+                            required
+                          />
+                        </div>
+                        <div className="col-span-3 space-y-1.5">
+                          <Label className="text-xs">Stock</Label>
+                          <Input 
+                            type="number"
+                            value={v.stock} 
+                            onChange={(e) => updateVariant(index, "stock", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                            className="h-8 text-sm"
+                            required
+                          />
+                        </div>
+                        <div className="col-span-1 pb-0.5">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => removeVariantRow(index)}
+                            disabled={variants.length <= 1}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Total Initial Stock</Label>
-                  <Input id="stock" name="stock" type="number" placeholder="100" />
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Total stock will be calculated automatically: {variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)}
+                  </p>
                 </div>
                 
                 <DialogFooter>
