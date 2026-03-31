@@ -26,6 +26,13 @@ export async function getCategories() {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
+export async function getCategoryBySlug(slug: string) {
+  const q = query(collection(db, "categories"), where("slug", "==", slug), limit(1));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+}
+
 export async function createCategory(data: any) {
   const slugCheck = await getDocs(query(collection(db, "categories"), where("slug", "==", data.slug)));
   if (!slugCheck.empty) throw new Error("Slug must be unique.");
@@ -39,18 +46,24 @@ export async function getProducts(options: {
   isFlashSale?: boolean;
   isNewArrival?: boolean;
 } = {}) {
-  let q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+  // Simple base query
+  let q = query(collection(db, "products"));
   
   if (options.categoryId) {
-    q = query(collection(db, "products"), where("categoryId", "==", options.categoryId), orderBy("createdAt", "desc"));
+    q = query(q, where("categoryId", "==", options.categoryId));
   }
   
   if (options.isFlashSale) {
-    q = query(collection(db, "products"), where("isFlashSale", "==", true), orderBy("createdAt", "desc"));
+    q = query(q, where("isFlashSale", "==", true));
   }
 
   if (options.isNewArrival) {
-    q = query(collection(db, "products"), where("tags", "array-contains", "New Arrival"), orderBy("createdAt", "desc"));
+    q = query(q, where("tags", "array-contains", "New Arrival"));
+  }
+
+  // Note: Combined where and orderBy requires index. Simplified for prototype.
+  if (!options.categoryId && !options.isFlashSale && !options.isNewArrival) {
+    q = query(q, orderBy("createdAt", "desc"));
   }
 
   if (options.limit) {
@@ -66,6 +79,12 @@ export async function getProductBySlug(slug: string) {
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+}
+
+export async function getProductVariants(productId: string) {
+  const q = query(collection(db, "products", productId, "productVariants"));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 export async function searchProducts(searchTerm: string) {

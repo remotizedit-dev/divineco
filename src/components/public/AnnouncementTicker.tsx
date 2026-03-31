@@ -1,10 +1,11 @@
+
 'use client';
 
 export function AnnouncementTicker() {
   return (
-    <div className="bg-primary text-primary-foreground py-2 overflow-hidden">
-      <div className="animate-ticker inline-block whitespace-nowrap px-4 text-xs font-medium uppercase tracking-widest">
-        Free shipping on orders over Tk 5000 • New Collection Launching Soon • Premium Quality Guaranteed • Shop Divine.Co
+    <div className="bg-primary text-white py-2 overflow-hidden relative">
+      <div className="animate-ticker whitespace-nowrap inline-block text-xs font-bold uppercase tracking-widest">
+        Free Shipping on Orders Over Tk 5000 • New Summer Collection Now Live • Use Code DIVINE10 for 10% Off Your First Order • Premium Boutique Experience • Crafted for Elegance
       </div>
     </div>
   );
