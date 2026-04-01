@@ -30,6 +30,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -64,6 +65,11 @@ export default function OrdersPage() {
       case "Cancelled": return <Badge variant="destructive">Cancelled</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const openDetails = (order: any) => {
+    setSelectedOrder(order);
+    setIsDetailsOpen(true);
   };
 
   return (
@@ -106,117 +112,9 @@ export default function OrdersPage() {
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-3xl">
-                          <DialogHeader>
-                            <DialogTitle>Order Details {order.orderNumber || `#${order.id.substring(0, 8)}`}</DialogTitle>
-                          </DialogHeader>
-                          {selectedOrder && (
-                            <div className="space-y-6 py-4">
-                              <div className="grid grid-cols-2 gap-8">
-                                <div className="space-y-3">
-                                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Customer Information</h4>
-                                  <div className="text-sm space-y-2">
-                                    <p className="font-bold text-lg">{selectedOrder.customerName}</p>
-                                    <p className="flex items-center gap-2"><Phone className="w-3 h-3 text-primary" /> {selectedOrder.customerPhone}</p>
-                                    <p className="flex items-start gap-2"><MapPin className="w-3 h-3 mt-1 text-primary" /> {selectedOrder.customerAddress}</p>
-                                    <p className="inline-block px-2 py-1 bg-primary/10 text-primary rounded text-xs font-bold mt-2">{selectedOrder.deliveryRegion}</p>
-                                  </div>
-                                </div>
-                                <div className="space-y-3">
-                                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Fulfillment Status</h4>
-                                  <div className="space-y-4">
-                                    <Select 
-                                      defaultValue={selectedOrder.status} 
-                                      onValueChange={(val) => handleStatusChange(selectedOrder.id, val)}
-                                    >
-                                      <SelectTrigger className="w-full">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="Pending">Pending</SelectItem>
-                                        <SelectItem value="Accepted">Accepted (Shipment Prepared)</SelectItem>
-                                        <SelectItem value="Delivered">Delivered</SelectItem>
-                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <div className="p-3 bg-muted/50 rounded-lg text-[10px] space-y-2 font-medium uppercase tracking-wider">
-                                      <p className="flex items-center gap-2 text-muted-foreground"><Clock className="w-3 h-3" /> Placed: {selectedOrder.createdAt ? format(selectedOrder.createdAt.seconds * 1000, "PPpp") : "Recently"}</p>
-                                      <p className="flex items-center gap-2 text-muted-foreground"><Package className="w-3 h-3" /> Method: {selectedOrder.paymentMethod}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="space-y-4">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Order Items</h4>
-                                <div className="border rounded-xl overflow-hidden shadow-sm">
-                                  <Table>
-                                    <TableHeader className="bg-muted/50">
-                                      <TableRow>
-                                        <TableHead className="h-10 text-xs">Product</TableHead>
-                                        <TableHead className="h-10 text-xs">Variant</TableHead>
-                                        <TableHead className="h-10 text-xs text-center">Qty</TableHead>
-                                        <TableHead className="h-10 text-xs text-right">Price</TableHead>
-                                      </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                      {selectedOrder.items.map((item: any, idx: number) => (
-                                        <TableRow key={idx}>
-                                          <TableCell className="py-3">
-                                            <div className="flex items-center gap-3">
-                                              <div className="w-12 h-14 relative rounded-md overflow-hidden bg-muted border flex-shrink-0 shadow-sm">
-                                                <Image 
-                                                  src={item.image || 'https://placehold.co/100x120?text=No+Image'} 
-                                                  alt={item.name} 
-                                                  fill 
-                                                  className="object-cover"
-                                                />
-                                              </div>
-                                              <span className="font-bold text-sm leading-tight">{item.name}</span>
-                                            </div>
-                                          </TableCell>
-                                          <TableCell className="py-3 text-xs text-muted-foreground italic">
-                                            {item.variant ? `${item.variant.color} / ${item.variant.size}` : "One Size"}
-                                          </TableCell>
-                                          <TableCell className="py-3 text-sm text-center font-medium">{item.quantity}</TableCell>
-                                          <TableCell className="py-3 text-sm text-right font-bold">Tk {item.price * item.quantity}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-col items-end gap-2 pt-6 border-t">
-                                <div className="flex justify-between w-64 text-sm text-muted-foreground">
-                                  <span>Subtotal:</span>
-                                  <span className="font-bold text-foreground">Tk {selectedOrder.subtotal}</span>
-                                </div>
-                                <div className="flex justify-between w-64 text-sm text-muted-foreground">
-                                  <span>Shipping:</span>
-                                  <span className="font-bold text-foreground">Tk {selectedOrder.shippingCost}</span>
-                                </div>
-                                {selectedOrder.discount > 0 && (
-                                  <div className="flex justify-between w-64 text-sm font-bold text-green-600 bg-green-50 p-2 rounded">
-                                    <span>Discount:</span>
-                                    <span>-Tk {selectedOrder.discount}</span>
-                                  </div>
-                                )}
-                                <div className="flex justify-between w-64 text-2xl font-bold pt-4 border-t border-muted-foreground/10">
-                                  <span className="text-primary">Total:</span>
-                                  <span className="text-primary">Tk {selectedOrder.total}</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
+                      <Button variant="ghost" size="icon" onClick={() => openDetails(order)}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -249,6 +147,113 @@ export default function OrdersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Order Details {selectedOrder?.orderNumber || `#${selectedOrder?.id?.substring(0, 8)}`}</DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-6 py-4">
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Customer Information</h4>
+                  <div className="text-sm space-y-2">
+                    <p className="font-bold text-lg">{selectedOrder.customerName}</p>
+                    <p className="flex items-center gap-2"><Phone className="w-3 h-3 text-primary" /> {selectedOrder.customerPhone}</p>
+                    <p className="flex items-start gap-2"><MapPin className="w-3 h-3 mt-1 text-primary" /> {selectedOrder.customerAddress}</p>
+                    <p className="inline-block px-2 py-1 bg-primary/10 text-primary rounded text-xs font-bold mt-2">{selectedOrder.deliveryRegion}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Fulfillment Status</h4>
+                  <div className="space-y-4">
+                    <Select 
+                      defaultValue={selectedOrder.status} 
+                      onValueChange={(val) => handleStatusChange(selectedOrder.id, val)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Accepted">Accepted (Shipment Prepared)</SelectItem>
+                        <SelectItem value="Delivered">Delivered</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="p-3 bg-muted/50 rounded-lg text-[10px] space-y-2 font-medium uppercase tracking-wider">
+                      <p className="flex items-center gap-2 text-muted-foreground"><Clock className="w-3 h-3" /> Placed: {selectedOrder.createdAt ? format(selectedOrder.createdAt.seconds * 1000, "PPpp") : "Recently"}</p>
+                      <p className="flex items-center gap-2 text-muted-foreground"><Package className="w-3 h-3" /> Method: {selectedOrder.paymentMethod}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground border-b pb-2">Order Items</h4>
+                <div className="border rounded-xl overflow-hidden shadow-sm">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="h-10 text-xs">Product</TableHead>
+                        <TableHead className="h-10 text-xs">Variant</TableHead>
+                        <TableHead className="h-10 text-xs text-center">Qty</TableHead>
+                        <TableHead className="h-10 text-xs text-right">Price</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedOrder.items.map((item: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-14 relative rounded-md overflow-hidden bg-muted border flex-shrink-0 shadow-sm">
+                                <Image 
+                                  src={item.image || 'https://placehold.co/100x120?text=No+Image'} 
+                                  alt={item.name} 
+                                  fill 
+                                  className="object-cover"
+                                />
+                              </div>
+                              <span className="font-bold text-sm leading-tight">{item.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3 text-xs text-muted-foreground italic">
+                            {item.variant ? `${item.variant.color} / ${item.variant.size}` : "One Size"}
+                          </TableCell>
+                          <TableCell className="py-3 text-sm text-center font-medium">{item.quantity}</TableCell>
+                          <TableCell className="py-3 text-sm text-right font-bold">Tk {item.price * item.quantity}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-end gap-2 pt-6 border-t">
+                <div className="flex justify-between w-64 text-sm text-muted-foreground">
+                  <span>Subtotal:</span>
+                  <span className="font-bold text-foreground">Tk {selectedOrder.subtotal}</span>
+                </div>
+                <div className="flex justify-between w-64 text-sm text-muted-foreground">
+                  <span>Shipping:</span>
+                  <span className="font-bold text-foreground">Tk {selectedOrder.shippingCost}</span>
+                </div>
+                {selectedOrder.discount > 0 && (
+                  <div className="flex justify-between w-64 text-sm font-bold text-green-600 bg-green-50 p-2 rounded">
+                    <span>Discount:</span>
+                    <span>-Tk {selectedOrder.discount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between w-64 text-2xl font-bold pt-4 border-t border-muted-foreground/10">
+                  <span className="text-primary">Total:</span>
+                  <span className="text-primary">Tk {selectedOrder.total}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

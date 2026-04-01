@@ -299,11 +299,14 @@ export default function ProductsPage() {
 
   const handleDeleteProduct = (productId: string) => {
     if (!firestore) return;
-    if (confirm("Are you sure you want to delete this product?")) {
-      deleteDocumentNonBlocking(doc(firestore, "products", productId));
-      toast({ title: "Product Deleted", description: "Inventory updated successfully." });
-      setTimeout(refreshData, 1000);
-    }
+    // Delay confirm slightly to ensure dropdown has closed and UI is ready
+    setTimeout(() => {
+      if (confirm("Are you sure you want to delete this product?")) {
+        deleteDocumentNonBlocking(doc(firestore, "products", productId));
+        toast({ title: "Product Deleted", description: "Inventory updated successfully." });
+        setTimeout(refreshData, 1000);
+      }
+    }, 100);
   };
 
   return (
@@ -626,13 +629,31 @@ export default function ProductsPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem className="gap-2" onClick={() => openViewDialog(product)}>
+                      <DropdownMenuItem 
+                        className="gap-2" 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          openViewDialog(product);
+                        }}
+                      >
                         <Eye className="w-4 h-4" /> View
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2" onClick={() => openEditDialog(product)}>
+                      <DropdownMenuItem 
+                        className="gap-2" 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          openEditDialog(product);
+                        }}
+                      >
                         <Edit className="w-4 h-4" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDeleteProduct(product.id)}>
+                      <DropdownMenuItem 
+                        className="gap-2 text-destructive" 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleDeleteProduct(product.id);
+                        }}
+                      >
                         <Trash className="w-4 h-4" /> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
