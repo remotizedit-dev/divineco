@@ -2,7 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ShoppingBag, ArrowRight } from "lucide-react";
+import { ShoppingBag, CheckCircle2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -15,56 +15,39 @@ interface AddToCartModalProps {
   quantity: number;
 }
 
-export function AddToCartModal({ 
-  isOpen, 
-  onClose, 
-  productName, 
-  productPrice, 
-  productImage,
-  quantity 
-}: AddToCartModalProps) {
+export function AddToCartModal({ isOpen, onClose, productName, productPrice, productImage, quantity }: AddToCartModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-        <div className="bg-green-50 p-6 flex items-center gap-3 border-b border-green-100">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-            <CheckCircle2 className="w-6 h-6 text-green-600" />
-          </div>
-          <p className="font-bold text-green-800 text-sm">Product added to your bag!</p>
+      <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+        <div className="bg-green-500 p-6 flex items-center justify-center gap-3 text-white">
+          <CheckCircle2 className="w-8 h-8" />
+          <h2 className="text-xl font-headline font-bold">Successfully Added!</h2>
         </div>
         
         <div className="p-6 md:p-8">
-          <div className="flex gap-5 mb-8">
-            <div className="relative w-24 h-32 rounded-2xl overflow-hidden border bg-muted shrink-0 shadow-sm">
+          <div className="flex gap-4 items-center mb-8 bg-muted/30 p-4 rounded-2xl">
+            <div className="relative w-20 h-24 rounded-xl overflow-hidden border bg-white shrink-0">
               <Image src={productImage} alt={productName} fill className="object-cover" />
             </div>
-            <div className="flex flex-col justify-center min-w-0 py-1">
-              <h3 className="font-headline font-bold text-xl mb-1 truncate">{productName}</h3>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Qty: {quantity}</span>
-                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">•</span>
-                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Price: Tk {productPrice}</span>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-lg text-foreground line-clamp-1">{productName}</p>
+              <div className="flex flex-col gap-1 mt-1">
+                <p className="text-sm text-muted-foreground font-medium">Qty: <span className="text-foreground">{quantity}</span></p>
+                <p className="text-primary font-bold">Tk {productPrice * quantity}</p>
               </div>
-              <p className="text-primary font-bold text-xl">Total: Tk {productPrice * quantity}</p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <Button className="w-full h-14 rounded-2xl text-lg gap-2 shadow-lg shadow-primary/20" asChild onClick={onClose}>
+          <div className="grid grid-cols-1 gap-3">
+            <Button asChild size="lg" className="h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" onClick={onClose}>
               <Link href="/checkout">
-                Order Now <ArrowRight className="w-5 h-5" />
+                <ShoppingBag className="w-5 h-5 mr-2" /> Complete Order
               </Link>
             </Button>
-            <Button variant="outline" className="w-full h-14 rounded-2xl text-lg font-medium border-muted text-muted-foreground hover:bg-muted/30" onClick={onClose}>
-              Add More Items
+            <Button variant="outline" size="lg" className="h-14 rounded-2xl text-lg font-bold border-2" onClick={onClose}>
+              Add More Items <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
-        </div>
-        
-        <div className="px-6 pb-6 text-center">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-            Free Delivery on orders above Tk 5000
-          </p>
         </div>
       </DialogContent>
     </Dialog>
