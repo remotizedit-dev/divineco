@@ -54,15 +54,18 @@ export default function ProductDetailPage() {
       const checkExpiry = () => {
         const now = new Date().getTime();
         const end = new Date(product.flashSaleEndTime).getTime();
-        setIsExpired(now >= end);
+        if (now >= end && !isExpired) {
+          setIsExpired(true);
+        }
       };
       checkExpiry();
       const timer = setInterval(checkExpiry, 1000);
       return () => clearInterval(timer);
     }
-  }, [product]);
+  }, [product, isExpired]);
 
-  const displayPrice = isExpired ? (product?.compareAtPrice || product?.salesPrice) : product?.salesPrice;
+  const hasActiveSale = product?.isFlashSale && !isExpired;
+  const displayPrice = hasActiveSale ? product?.salesPrice : (product?.compareAtPrice || product?.salesPrice);
   const isOutOfStock = product?.stock <= 0;
 
   const handleAddToCart = () => {
@@ -148,24 +151,32 @@ export default function ProductDetailPage() {
                     <Zap className="w-3 h-3 fill-current mr-1" /> {tag}
                   </Badge>
                 ))}
+                {hasActiveSale && (
+                  <Badge className="bg-amber-500 text-white font-bold uppercase tracking-wider text-[10px] px-3 py-1">
+                    Flash Sale
+                  </Badge>
+                )}
               </div>
               
               <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">{product.name}</h1>
               
               <div className="flex items-baseline gap-6">
                 <p className="text-4xl md:text-5xl font-bold text-primary">BDT {displayPrice}</p>
-                {!isExpired && product.compareAtPrice && product.compareAtPrice > product.salesPrice && (
+                {hasActiveSale && product.compareAtPrice && product.compareAtPrice > product.salesPrice && (
                   <p className="text-xl md:text-2xl text-muted-foreground line-through opacity-40 font-medium">BDT {product.compareAtPrice}</p>
                 )}
               </div>
 
-              {!isExpired && product.isFlashSale && product.flashSaleEndTime && (
+              {hasActiveSale && product.flashSaleEndTime && (
                 <div className="flex items-center gap-4 md:gap-6 bg-red-50 border border-red-100 rounded-2xl p-4 md:p-6 shadow-sm">
                   <div className="flex items-center gap-2 text-red-600">
                     <Clock className="w-5 h-5" />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Ends In:</span>
                   </div>
-                  <CountdownTimer targetDate={new Date(product.flashSaleEndTime)} className="h-10 text-xl px-4 rounded-xl shadow-inner bg-white border-none text-red-600" />
+                  <CountdownTimer 
+                    targetDate={new Date(product.flashSaleEndTime)} 
+                    className="h-10 text-xl px-4 rounded-xl shadow-inner bg-white border-none text-red-600" 
+                  />
                 </div>
               )}
             </div>
